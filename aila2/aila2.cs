@@ -32,11 +32,11 @@ namespace Symantec.CWoC.aila2 {
 
     class SchemaParser {
         public string current_schema_string;
-        int[] field_positions;
+        List<int> field_positions;
 
         public SchemaParser() {
             current_schema_string = "";
-            field_positions = new int[10];
+            field_positions = new List<int>();
         }
 
         private readonly string[] SupportedFields = new string[] {
@@ -58,20 +58,20 @@ namespace Symantec.CWoC.aila2 {
             if (schema != current_schema_string) {
                 current_schema_string = schema;
                 string[] fields = schema.Split(' ');
+                int i = 0;
                 foreach (string f in fields) {
-                    int i = 0;
                     foreach (string s in SupportedFields) {
                         if (s == f) {
                             field_positions.Add(i);
                             //Console.WriteLine("{0}: {1}", i.ToString(), f);
                             break;
                         }
-                        i++;
                     }
+                    i++;
                 }
                 int j = 0;
-                foreach (int i in field_positions) {
-                    Console.WriteLine("{0}-{1}: {2}", j++.ToString(), i.ToString(), SupportedFields[i]);
+                foreach (int k in field_positions) {
+                    Console.WriteLine("{0}-{1}: {2}", j++.ToString(), k.ToString(), SupportedFields[k]);
                 }
             }
             return 0;
