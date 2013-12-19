@@ -16,7 +16,7 @@ namespace Symantec.CWoC {
                 int result = config.CheckConfig(args);
 
                 if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
-                    LogAnalyzer a = new LogAnalyzer();
+                    LogAnalyzer a = new LogAnalyzer(config);
                     a.AnalyzeFile(config.file_path);
                     return result;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
@@ -172,10 +172,29 @@ namespace Symantec.CWoC {
         public int DataLines;
         public int SchemaDef;
 
+        public int [] IIS_STATUS_hit_counter;
+        public int [] IIS_SUB_STATUS_hit_counter;
+        public int [] IIS_WIN32_STATUS_hit_counter;
+        public int [,] HOURLY_hit_counter;
+
         public ResultSet() {
-            LineCount = 0;
-            DataLines = 0;
-            SchemaDef = 0;
+            LineCount = DataLines = SchemaDef = 0;
+            IIS_STATUS_hit_counter = new int[10];
+            IIS_SUB_STATUS_hit_counter = new int[10];
+            IIS_WIN32_STATUS_hit_counter = new int[10];
+            HOURLY_hit_counter = new int[24,2];
+        }
+
+        public void DumpResults() {
+            Console.WriteLine("Hourly hit stats:");
+            int i = 0;
+            for (int j = 0; j < 24; j++) {
+                if (j < 10)
+                    Console.WriteLine("\t0{0}:00 {1}", i.ToString(), HOURLY_hit_counter[i, 0].ToString());
+                else
+                    Console.WriteLine("\t{0}:00 {1}", i.ToString(), HOURLY_hit_counter[i, 0].ToString());
+                i++;
+            }
         }
     }
 
@@ -225,13 +244,17 @@ namespace Symantec.CWoC {
             "time-taken"
         };
 
+        public enum FieldPositions {
+            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
+        }
+
         public int ParseSchemaString(string schema) {
             schema = schema.Substring(9).TrimEnd();
 
             if (schema != current_schema_string) {
                 current_schema_string = schema;
 
-                Logger.log_evt(Logger.log_levels.information, "Row Schema = " + current_schema_string);
+                Logger.log_evt(Logger.log_levels.verbose, "Row Schema = " + current_schema_string);
 
                 string[] fields = schema.Split(' ');
                 int l = 0;
@@ -263,11 +286,13 @@ namespace Symantec.CWoC {
     class LogAnalyzer {
         private ResultSet results;
         private SchemaParser schema;
+        private CLIConfig config;
 
         private string [] current_line;
 
-        public LogAnalyzer () {
+        public LogAnalyzer (CLIConfig c) {
             current_line = new string [11];
+            config = c;
         }
 
         public void AnalyzeFile (string filename) {
@@ -275,6 +300,11 @@ namespace Symantec.CWoC {
             results = new ResultSet();
             schema = new SchemaParser();
             Timer.Init();
+
+            if (config.csv_format) {
+                foreach (string s in SchemaParser.SupportedFields)
+                    Console.Write("{0};", s);
+            }
             try {
                 using (StreamReader r = new StreamReader(filename)){
                     int i = 0;
@@ -292,8 +322,11 @@ namespace Symantec.CWoC {
             } catch (Exception e){
                 Console.WriteLine(e.Message);
             }
-            Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
-            Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
+            if (!config.csv_format) {
+                results.DumpResults();
+                Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
+                Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
+            }
         }
 
         private void AnalyzeLine(string line) {
@@ -311,12 +344,19 @@ namespace Symantec.CWoC {
                 current_line.Initialize();
                 foreach (int j in schema.field_positions) {
                     current_line[i] = row_data[j];
-                    Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], row_data[j]);
+                    if(CLIConfig.log_level == Logger.log_levels.debugging)
+                        Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], current_line[i]);
                     i++;
+                }
+                if (config.csv_format) {
+                    Console.WriteLine(line.Replace(' ', ';'));
+                } else {
+                    // Analyse here
+                    int hour = Convert.ToInt32(current_line[(int) SchemaParser.FieldPositions.time].Substring(0, 2));
+                    results.HOURLY_hit_counter[hour, 0]++;
                 }
             }
         }
-
 
     }
 }
