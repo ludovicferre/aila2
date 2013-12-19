@@ -178,7 +178,7 @@ namespace Symantec.CWoC {
         public int [] IIS_SUB_STATUS_hit_counter;
         public int [] IIS_WIN32_STATUS_hit_counter;
 
-        public int [] WEBAPP_Hit_counter;
+        public long [,] WEBAPP_Hit_counter;
 
         public int [,] HOURLY_hit_counter;
 
@@ -193,7 +193,8 @@ namespace Symantec.CWoC {
 
             MIME_TYPE_hit_counter = new int[constants.http_mime_type.Length];
 
-            WEBAPP_Hit_counter = new int[constants.atrs_iis_vdir.Length];
+            // We track hit count, total duration and max duration per web-app
+            WEBAPP_Hit_counter = new long[constants.atrs_iis_vdir.Length, 3];
 
         }
     }
@@ -406,7 +407,10 @@ namespace Symantec.CWoC {
             }
             if (i >= constants.atrs_iis_vdir.Length)
                 i = constants.atrs_iis_vdir.Length - 1;
-            results.WEBAPP_Hit_counter[i]++;
+            results.WEBAPP_Hit_counter[i, 0]++;
+            results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+            if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]))
+                results.WEBAPP_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
             return 0;
         }
 
@@ -435,10 +439,18 @@ namespace Symantec.CWoC {
             }
 
             Console.WriteLine("Web-application stats:");
-            i = 0;
-            foreach (int j in results.WEBAPP_Hit_counter) {
+            for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
+                long hits = results.WEBAPP_Hit_counter[j, 0];
+                long duration = results.WEBAPP_Hit_counter[j, 1];
+                long max = results.WEBAPP_Hit_counter[j, 2];
+
+                long avg = 0;
+
+                if (duration > 0)
+                    avg = duration / hits;
+
                 if (j > 0 || config.no_null == false)
-                    Console.WriteLine("\t{0}: {1}", constants.atrs_iis_vdir[i], j.ToString());
+                    Console.WriteLine("\t{0}: {1} hits, timetaken is {2} ms, average duration is {3}, max duration is {4}.", constants.atrs_iis_vdir[j], hits.ToString(), duration.ToString(), avg.ToString(), max.ToString());
                 i++;
             }
         }
