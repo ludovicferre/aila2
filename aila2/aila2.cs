@@ -291,10 +291,17 @@ namespace Symantec.CWoC {
 
         private string [] current_line;
 
+        private int _hour;
+        private int _timetaken;
+        private int _status;
+        private int _substatus;
+        private int _win32status;
+
         public LogAnalyzer (CLIConfig c) {
             current_line = new string [11];
             config = c;
         }
+
 
         public void AnalyzeFile (string filename) {
             // Count lines
@@ -363,10 +370,18 @@ namespace Symantec.CWoC {
                 if (config.csv_format) {
                     Console.WriteLine(line.Replace(' ', ';'));
                 } else {
+
+                    // Convert the values from string to in now
+                    _hour = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.time].Substring(0, 2));
+                    _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                    _status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.status]);;
+                    _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]);;
+                    _win32status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
+
+
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
                     // Global hourly stats
-                    int hour = Convert.ToInt32(current_line[(int) SchemaParser.FieldPositions.time].Substring(0, 2));
-                    results.HOURLY_hit_counter[hour, 0]++;
+                    results.HOURLY_hit_counter[_hour, 0]++;
 
                     // Analyse mime types
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
@@ -415,44 +430,33 @@ namespace Symantec.CWoC {
         }
 
         public void DumpResults() {
-            Console.WriteLine("Hourly hit stats:");
-            int i = 0;
+            Console.WriteLine("{{\n\tfile : {0} ,", config.file_path);
+            Console.WriteLine("\thash : ... ,");
+            Console.WriteLine("\tstats : {");
+            Console.WriteLine("\t\thourly : [");
             for (int j = 0; j < 24; j++) {
-                if (j < 10) {
-                    if (results.HOURLY_hit_counter[i, 0] > 0 || config.no_null == false) {
-                        Console.WriteLine("\t0{0}:00 {1}", i.ToString(), results.HOURLY_hit_counter[i, 0].ToString());
-                    }
-                } else {
-                    if (results.HOURLY_hit_counter[i, 0] > 0 || config.no_null == false) {
-                        Console.WriteLine("\t{0}:00 {1}", i.ToString(), results.HOURLY_hit_counter[i, 0].ToString());
-                    }
-                }
-                i++;
+                if (j == 23)
+                    Console.WriteLine("\t\t\t{0} : {1} \n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString());
+                else
+                    Console.WriteLine("\t\t\t{0} : {1}, ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString());
             }
-
-            Console.WriteLine("Mime-type stats:");
-            i = 0;
-            foreach (int j in results.MIME_TYPE_hit_counter) {
-                if (j > 0 || config.no_null == false)
-                    Console.WriteLine("\t{0}: {1}", constants.http_mime_type[i], j.ToString());
-                i++;
+            Console.WriteLine("\t\tmime-type : [");
+            for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
+                if (j == results.MIME_TYPE_hit_counter.Length - 1)
+                    Console.WriteLine("\t\t\t{0} : {1} \n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                else
+                    Console.WriteLine("\t\t\t{0} : {1}, ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
             }
-
-            Console.WriteLine("Web-application stats:");
+            Console.WriteLine("\t\tweb-application : [");
             for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
-                long hits = results.WEBAPP_Hit_counter[j, 0];
-                long duration = results.WEBAPP_Hit_counter[j, 1];
-                long max = results.WEBAPP_Hit_counter[j, 2];
-
-                long avg = 0;
-
-                if (duration > 0)
-                    avg = duration / hits;
-
-                if (j > 0 || config.no_null == false)
-                    Console.WriteLine("\t{0}: {1} hits, timetaken is {2} ms, average duration is {3}, max duration is {4}.", constants.atrs_iis_vdir[j], hits.ToString(), duration.ToString(), avg.ToString(), max.ToString());
-                i++;
+                if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
+                    Console.WriteLine("\t\t\t\"{0}\" : [{1}, {2}, {3}] ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                } else {
+                    Console.WriteLine("\t\t\t\"{0}\" : [{1}, {2}, {3}], ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                }
             }
+            Console.WriteLine("\t\t]\n\t}\n}");
+
         }
 
     }
