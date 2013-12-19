@@ -72,19 +72,21 @@ namespace Symantec.CWoC {
          * Reverse lookup for Altiris Virtual Directories
          ******************************************************************************/
         public static readonly string [] atrs_iis_vdir = new string [] {
-	        "/Altiris/NS/Agent/",	//  0
-	        "/Altiris/NS/NSCap/",
-	        "/Altiris/NS/",
-	        "/Altiris/Resource/",
-	        "/Altiris/IRA[1]/",
-	        "/Altiris/Packages/",	//  5
-	        "/Altiris/SWPortal/",
-	        "/Altiris/CTA[3]/",
-	        "/Altiris/CTS[4]/",
-	        "/Altiris/TaskMgmt/",
-	        "/Altiris/Console/",
-	        "/Altiris/",		// 11
-	        "Other"
+	        "/altiris/ns/agent/",
+	        "/altiris/taskmanagement/",
+	        "/altiris/inventoryrulemanagement/",
+	        "/altiris/ns/nscap/",
+	        "/altiris/ns/",
+	        "/altiris/packageshare/",
+	        "/altiris/swportal/",
+	        "/altiris/clienttaskagent/",
+	        "/altiris/clienttaskserver/",
+	        "/altiris/console/",
+            "/altiris/activitycenter/",
+	        "/altiris/resource/",
+            "/altiris/workflow/",
+	        "/altiris",
+	        "other"
         };
 
         /******************************************************************************
@@ -171,6 +173,9 @@ namespace Symantec.CWoC {
 	        _xml,
             _css,
             _js,
+            _gif,
+            _png,
+            _jpg,
 	        _other_mime
         };
 
@@ -189,6 +194,9 @@ namespace Symantec.CWoC {
 	        "xml",
             "css",
             "js",
+            "gif",
+            "png",
+            "jpg",
 	        "Other"
         };
 

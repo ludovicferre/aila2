@@ -177,16 +177,24 @@ namespace Symantec.CWoC {
         public int [] IIS_STATUS_hit_counter;
         public int [] IIS_SUB_STATUS_hit_counter;
         public int [] IIS_WIN32_STATUS_hit_counter;
+
+        public int [] WEBAPP_Hit_counter;
+
         public int [,] HOURLY_hit_counter;
 
         public ResultSet() {
             LineCount = DataLines = SchemaDef = 0;
 
-            MIME_TYPE_hit_counter = new int[constants.http_mime_type.Length];
+            HOURLY_hit_counter = new int[24, 5];
+
             IIS_STATUS_hit_counter = new int[10];
             IIS_SUB_STATUS_hit_counter = new int[10];
             IIS_WIN32_STATUS_hit_counter = new int[10];
-            HOURLY_hit_counter = new int[24,2];
+
+            MIME_TYPE_hit_counter = new int[constants.http_mime_type.Length];
+
+            WEBAPP_Hit_counter = new int[constants.atrs_iis_vdir.Length];
+
         }
     }
 
@@ -303,6 +311,7 @@ namespace Symantec.CWoC {
                     int i = 0;
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
+                        Logger.log_evt(Logger.log_levels.debugging, string.Format("Parsing line below ###\n", line));
                         AnalyzeLine(line);
                         results.LineCount++;
 
@@ -314,6 +323,7 @@ namespace Symantec.CWoC {
                 }
             } catch (Exception e){
                 Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
                 Console.WriteLine(line);
             }
             if (!config.csv_format) {
@@ -337,7 +347,7 @@ namespace Symantec.CWoC {
 
                 results.DataLines++;
                 // Tokenize the current line
-                string[] row_data = line.Split(' ');
+                string[] row_data = line.ToLower().Split(' ');
                 int i = 0;
                 current_line.Initialize();
 
@@ -359,8 +369,11 @@ namespace Symantec.CWoC {
 
                     // Analyse mime types
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
-                    int type = Analyze_MimeTypes(current_line[(int)SchemaParser.FieldPositions.uristem]);
+                    Analyze_MimeTypes(current_line[(int)SchemaParser.FieldPositions.uristem]);
+                    
                     // Analyze web-application
+                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part III (web-apps) ...");
+                    Analyze_WebApp(current_line[(int)SchemaParser.FieldPositions.uristem]);
                 }
             }
         }
@@ -377,7 +390,24 @@ namespace Symantec.CWoC {
                 }
                 i++;
             }
+            results.MIME_TYPE_hit_counter[i-1]++;
             return i -1;
+        }
+
+        private int Analyze_WebApp(string uri) {
+            int i = 0;
+            foreach (string app in constants.atrs_iis_vdir) {
+                Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
+                if (uri.StartsWith(app)) {
+                    Logger.log_evt(Logger.log_levels.debugging, string.Format("Current request web-app is {0}.", app));
+                    break;
+                }
+                i++;
+            }
+            if (i >= constants.atrs_iis_vdir.Length)
+                i = constants.atrs_iis_vdir.Length - 1;
+            results.WEBAPP_Hit_counter[i]++;
+            return 0;
         }
 
         public void DumpResults() {
@@ -396,12 +426,20 @@ namespace Symantec.CWoC {
                 i++;
             }
 
-            Console.WriteLine("Mime-type stats");
-            int k = 0;
+            Console.WriteLine("Mime-type stats:");
+            i = 0;
             foreach (int j in results.MIME_TYPE_hit_counter) {
                 if (j > 0 || config.no_null == false)
-                    Console.WriteLine("\t{0}: {1}", constants.http_mime_type[k], j.ToString());
-                k++;
+                    Console.WriteLine("\t{0}: {1}", constants.http_mime_type[i], j.ToString());
+                i++;
+            }
+
+            Console.WriteLine("Web-application stats:");
+            i = 0;
+            foreach (int j in results.WEBAPP_Hit_counter) {
+                if (j > 0 || config.no_null == false)
+                    Console.WriteLine("\t{0}: {1}", constants.atrs_iis_vdir[i], j.ToString());
+                i++;
             }
         }
 
