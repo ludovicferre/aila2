@@ -33,14 +33,14 @@ namespace Symantec.CWoC {
             }
         }
 
-        private static readonly string VERSION_MESSAGE = "aila2 (Altiris IIS Log Analyser) is at version " + version + "\nBuilt for .Net 2.0, brought to you by {CWoC}.\n\n";
+        private static readonly string VERSION_MESSAGE = "aila2 (Altiris IIS Log Analyser) is at version " + version + "\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
 
         private static readonly string HELP_MESSAGE = "\nUsage : aila2 [Parameter] [Option(s)]\n\nParameters:\n\t  -h, --help to show this help message\n\t  -f, --file <path_to_file>\n\nOptions:\n\t  -c, --csv-format\tFormat output using tab seperated values\n\t  -l, --log-level <lvl>\tOutput log data <= to <lvl> to stderr:\n\t\t--log-level  1 -> error\n\t\t--log-level  2 -> warning\n\t\t--log-level  4 -> information\n\t\t--log-level  8 -> verbose\n\t\t--log-level 16 -> debug\n\t -n0, --no-zero\t\tShow results including 0 counts\n\t-ndc, --no-dump-cache\tDo no writes the string cache content to file\n\t -nt, --no-topper\tDo not output the top 20 entries from caches\n\t -js, --json\t\tProduces JSON formatted output for aila-web\n\t  -S, --summary\t\tParse file for summary review only\n\t  -V, --version\t\tOutput program version only\n\nSamples:\n\taila2 --file iis.log --no-zero --log-level 8\n\taila2 -f iis.log -l 4 -n0\n\taila2 -f iis.log -n0\n\n{CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc\n";
 
     }
 
     class Logger {
-        public enum log_levels { error, warning, information, verbose, debugging };
+        public enum log_levels { error = 1, warning = 2, information = 4, verbose = 8, debugging = 16 };
         public static void log_evt(log_levels lvl, string s) {
             if ((int)CLIConfig.log_level >= (int) lvl)
                 Console.WriteLine(s);
@@ -59,7 +59,7 @@ namespace Symantec.CWoC {
         public bool no_topper;
         public bool json_output;
         public bool debug;
-        public bool progress_bar;
+        public static bool progress_bar;
 
         public CLIConfig() {
             status = parse_results.check_error;
@@ -121,7 +121,7 @@ namespace Symantec.CWoC {
                 if (argv[i] == "-S" || argv[i] == "--summary")
                     summary_only = true;
 
-                if (argv[i] == "-npc" || argv[i] == "--no-progress")
+                if (argv[i] == "-np" || argv[i] == "--no-progress")
                     progress_bar = false;
 
                 if (argv[i] == "-l" || argv[i] == "--log-level") {
@@ -154,7 +154,6 @@ namespace Symantec.CWoC {
                 i++;
             }
             if (current_check == true) {
-                // dump_option_set(opt);
                 status = parse_results.check_success;
                 if (csv_format == true)
                     progress_bar = false;
@@ -180,65 +179,6 @@ namespace Symantec.CWoC {
         }
     }
 
-    class SchemaParser {
-        public string current_schema_string;
-        private List<int> field_positions;
-
-        public SchemaParser() {
-            current_schema_string = "";
-            // Assume a mx 30 distinct fields are select, safe?
-            field_positions = new List<int>();
-        }
-
-        private readonly string[] SupportedFields = new string[] {
-            "date",
-            "time",
-            "cs-method",
-            "cs-uri-stem",
-            "cs-uri-query",
-            "cs-username",
-            "c-ip",
-            "sc-status",
-            "sc-substatus",
-            "sc-win32-status",
-            "time-taken"
-        };
-
-        public int ParseSchemaString (string schema) {
-            schema = schema.Substring(9).TrimEnd();
-
-            // Check whether the schema is changed or already supported
-            if (schema != current_schema_string) {
-                // New schema - save it now
-                current_schema_string = schema;
-
-                // Tokenise the string
-                string[] fields = schema.Split(' ');
-                Console.WriteLine("Schema field count = {0}.", fields.Length.ToString());
-                foreach (string f in SupportedFields) {
-                    int i = 0;
-                    foreach (string s in fields) {
-                        if (s == f) {
-                            field_positions.Add(i);
-                            Console.WriteLine("We have a match for string {0} at position {1}.", s, i.ToString());
-                            break;
-                        }
-                        i++;
-                    }
-                }
-                int j = 0;
-                foreach (int k in field_positions) {
-                    Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
-                    j++;
-                }
-                return 1;
-            } else {
-                return 0;
-            }
-        }
-
-    }
-
     class Timer {
         private static Stopwatch chrono;
 
@@ -261,10 +201,74 @@ namespace Symantec.CWoC {
         }
     }
 
+    class SchemaParser {
+        public string current_schema_string;
+        public List<int> field_positions;
+
+        public SchemaParser() {
+            current_schema_string = "";
+            // Assume a mx 30 distinct fields are select, safe?
+            field_positions = new List<int>();
+        }
+
+        public static readonly string[] SupportedFields = new string[] {
+            "date",
+            "time",
+            "cs-method",
+            "cs-uri-stem",
+            "cs-uri-query",
+            "cs-username",
+            "c-ip",
+            "sc-status",
+            "sc-substatus",
+            "sc-win32-status",
+            "time-taken"
+        };
+
+        public int ParseSchemaString(string schema) {
+            schema = schema.Substring(9).TrimEnd();
+
+            if (schema != current_schema_string) {
+                current_schema_string = schema;
+
+                Logger.log_evt(Logger.log_levels.information, "Row Schema = " + current_schema_string);
+
+                string[] fields = schema.Split(' ');
+                int l = 0;
+                foreach (string f in fields) {
+                    int i = 0;
+                    foreach (string s in SupportedFields) {
+                        if (s == f) {
+                            field_positions.Add(l);
+                            Logger.log_evt(Logger.log_levels.debugging, string.Format("We have a match for string {0} at position {1}.", s, l.ToString()));
+                            break;
+                        }
+                        i++;
+                    }
+                    l++;
+                }
+                int j = 0;
+                foreach (int k in field_positions) {
+                    Logger.log_evt(Logger.log_levels.debugging, String.Format("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]));
+                    j++;
+                }
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+
+    }
 
     class LogAnalyzer {
         private ResultSet results;
         private SchemaParser schema;
+
+        private string [] current_line;
+
+        public LogAnalyzer () {
+            current_line = new string [11];
+        }
 
         public void AnalyzeFile (string filename) {
             // Count lines
@@ -279,7 +283,7 @@ namespace Symantec.CWoC {
                         AnalyzeLine(line);
                         results.LineCount++;
 
-                        if (++i > 9999) {
+                        if (++i > 9999 && CLIConfig.progress_bar) {
                             Console.Write("Processed {0} lines...\r", results.LineCount);
                             i = 0;
                         }
@@ -298,11 +302,21 @@ namespace Symantec.CWoC {
                     if (schema.current_schema_string != line) {
                         results.SchemaDef += schema.ParseSchemaString(line.ToLower());
                     }
-                    // Console.WriteLine(line);
                 }
             } else {
                 results.DataLines++;
+                // Tokenize the current line
+                string[] row_data = line.Split(' ');
+                int i = 0;
+                current_line.Initialize();
+                foreach (int j in schema.field_positions) {
+                    current_line[i] = row_data[j];
+                    Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], row_data[j]);
+                    i++;
+                }
             }
         }
+
+
     }
 }
