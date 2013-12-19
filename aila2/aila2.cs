@@ -6,9 +6,11 @@ using System.Text;
 
 namespace Symantec.CWoC {
     class aila2 {
-        static void Main(string[] args) {
+        private static readonly int version = 1;
+        static int Main(string[] args) {
             if (args.Length == 0) {
-                // Display help message
+                Console.Write(HELP_MESSAGE);
+                return -1;
             } else {
                 CLIConfig config = new CLIConfig();
                 int result = config.CheckConfig(args);
@@ -16,14 +18,32 @@ namespace Symantec.CWoC {
                 if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
                     LogAnalyzer a = new LogAnalyzer();
                     a.AnalyzeFile(config.file_path);
+                    return result;
+                } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
+                    Console.Write(HELP_MESSAGE);
+                    return result;
+                } else if (result == 0 && config.status == CLIConfig.parse_results.version_request) {
+                    // Display versions
+                    Console.WriteLine(VERSION_MESSAGE);
+                    return result;
+                } else {
+                    Console.Write(HELP_MESSAGE);
+                    return result; // Error
                 }
             }
         }
+
+        private static readonly string VERSION_MESSAGE = "aila2 (Altiris IIS Log Analyser) is at version " + version + "\nBuilt for .Net 2.0, brought to you by {CWoC}.\n\n";
+
+        private static readonly string HELP_MESSAGE = "\nUsage : aila2 [Parameter] [Option(s)]\n\nParameters:\n\t  -h, --help to show this help message\n\t  -f, --file <path_to_file>\n\nOptions:\n\t  -c, --csv-format\tFormat output using tab seperated values\n\t  -l, --log-level <lvl>\tOutput log data <= to <lvl> to stderr:\n\t\t--log-level  1 -> error\n\t\t--log-level  2 -> warning\n\t\t--log-level  4 -> information\n\t\t--log-level  8 -> verbose\n\t\t--log-level 16 -> debug\n\t -n0, --no-zero\t\tShow results including 0 counts\n\t-ndc, --no-dump-cache\tDo no writes the string cache content to file\n\t -nt, --no-topper\tDo not output the top 20 entries from caches\n\t -js, --json\t\tProduces JSON formatted output for aila-web\n\t  -S, --summary\t\tParse file for summary review only\n\t  -V, --version\t\tOutput program version only\n\nSamples:\n\taila2 --file iis.log --no-zero --log-level 8\n\taila2 -f iis.log -l 4 -n0\n\taila2 -f iis.log -n0\n\n{CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc\n";
+
     }
 
     class Logger {
-        public static void log_evt(string s) {
-            Console.WriteLine(s);
+        public enum log_levels { error, warning, information, verbose, debugging };
+        public static void log_evt(log_levels lvl, string s) {
+            if ((int)CLIConfig.log_level >= (int) lvl)
+                Console.WriteLine(s);
         }
     }
     
@@ -32,7 +52,7 @@ namespace Symantec.CWoC {
         public string file_path;
         public bool no_null;
         public bool summary_only;
-        public int log_level;
+        public static Logger.log_levels log_level = Logger.log_levels.warning;
         public bool dump_cache;
         public bool csv_format;
         public bool query_shell;
@@ -46,7 +66,6 @@ namespace Symantec.CWoC {
             file_path = "";
             no_null = false;
             summary_only = true;
-            log_level = 2;
             dump_cache = true;
             csv_format = false;
             query_shell = false;
@@ -69,7 +88,7 @@ namespace Symantec.CWoC {
             bool current_check = false;
 
             while (i < argc) {
-                Logger.log_evt(string.Format("#Command line Argument %d= '%s'", i, argv[i]));
+                Logger.log_evt(Logger.log_levels.information, string.Format("#Command line Argument {0}= '{1}'", i, argv[i]));
 
                 if ((argv[i] == "-h") || argv[i] == "--help") {
                     status = parse_results.check_error;
@@ -80,7 +99,7 @@ namespace Symantec.CWoC {
                     if (argc > i + 1) {
                         file_path = argv[++i];
                         current_check = true;
-                        Logger.log_evt(String.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
+                        Logger.log_evt(Logger.log_levels.information , string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
                     } else {
                         current_check = false;
                     }
@@ -108,7 +127,7 @@ namespace Symantec.CWoC {
                 if (argv[i] == "-l" || argv[i] == "--log-level") {
                     try {
                         int l = Convert.ToInt32(argv[i + 1]);
-                        log_level = l;
+                        log_level = (Logger.log_levels) l;
                         i++;
                     } catch {
                         status = parse_results.check_error;
@@ -139,11 +158,11 @@ namespace Symantec.CWoC {
                 status = parse_results.check_success;
                 if (csv_format == true)
                     progress_bar = false;
-                Logger.log_evt("Returning success (0) to caller.");
+                Logger.log_evt(Logger.log_levels.verbose, "Returning success (0) to caller.");
                 return 0;
             } else {
                 status = parse_results.check_error;
-                Logger.log_evt("Returning failure (-1) to caller.");
+                Logger.log_evt(Logger.log_levels.warning, "Returning failure (-1) to caller.");
                 return -1;
             }
         }
