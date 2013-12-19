@@ -172,6 +172,8 @@ namespace Symantec.CWoC {
         public int DataLines;
         public int SchemaDef;
 
+        public int[] MIME_TYPE_hit_counter;
+
         public int [] IIS_STATUS_hit_counter;
         public int [] IIS_SUB_STATUS_hit_counter;
         public int [] IIS_WIN32_STATUS_hit_counter;
@@ -179,22 +181,12 @@ namespace Symantec.CWoC {
 
         public ResultSet() {
             LineCount = DataLines = SchemaDef = 0;
+
+            MIME_TYPE_hit_counter = new int[constants.http_mime_type.Length];
             IIS_STATUS_hit_counter = new int[10];
             IIS_SUB_STATUS_hit_counter = new int[10];
             IIS_WIN32_STATUS_hit_counter = new int[10];
             HOURLY_hit_counter = new int[24,2];
-        }
-
-        public void DumpResults() {
-            Console.WriteLine("Hourly hit stats:");
-            int i = 0;
-            for (int j = 0; j < 24; j++) {
-                if (j < 10)
-                    Console.WriteLine("\t0{0}:00 {1}", i.ToString(), HOURLY_hit_counter[i, 0].ToString());
-                else
-                    Console.WriteLine("\t{0}:00 {1}", i.ToString(), HOURLY_hit_counter[i, 0].ToString());
-                i++;
-            }
         }
     }
 
@@ -305,11 +297,12 @@ namespace Symantec.CWoC {
                 foreach (string s in SchemaParser.SupportedFields)
                     Console.Write("{0};", s);
             }
+            string line = "";
             try {
                 using (StreamReader r = new StreamReader(filename)){
                     int i = 0;
                     while (r.Peek() >= 0) {
-                        string line = r.ReadLine();
+                        line = r.ReadLine();
                         AnalyzeLine(line);
                         results.LineCount++;
 
@@ -321,40 +314,94 @@ namespace Symantec.CWoC {
                 }
             } catch (Exception e){
                 Console.WriteLine(e.Message);
+                Console.WriteLine(line);
             }
             if (!config.csv_format) {
-                results.DumpResults();
+                DumpResults();
                 Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
                 Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
             }
         }
 
         private void AnalyzeLine(string line) {
+            Logger.log_evt(Logger.log_levels.debugging, "Starting detailed line analysis...");
             if (line.StartsWith("#")) {
+                Logger.log_evt(Logger.log_levels.debugging, "We have a commented line");
                 if (line.StartsWith("#Fields:")) {
                     if (schema.current_schema_string != line) {
                         results.SchemaDef += schema.ParseSchemaString(line.ToLower());
                     }
                 }
             } else {
+                Logger.log_evt(Logger.log_levels.debugging, "The current line contains data...");
+
                 results.DataLines++;
                 // Tokenize the current line
                 string[] row_data = line.Split(' ');
                 int i = 0;
                 current_line.Initialize();
+
+                Logger.log_evt(Logger.log_levels.debugging, "Loading line data into storage array...");
                 foreach (int j in schema.field_positions) {
                     current_line[i] = row_data[j];
                     if(CLIConfig.log_level == Logger.log_levels.debugging)
                         Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], current_line[i]);
                     i++;
                 }
+
                 if (config.csv_format) {
                     Console.WriteLine(line.Replace(' ', ';'));
                 } else {
-                    // Analyse here
+                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
+                    // Global hourly stats
                     int hour = Convert.ToInt32(current_line[(int) SchemaParser.FieldPositions.time].Substring(0, 2));
                     results.HOURLY_hit_counter[hour, 0]++;
+
+                    // Analyse mime types
+                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
+                    int type = Analyze_MimeTypes(current_line[(int)SchemaParser.FieldPositions.uristem]);
+                    // Analyze web-application
                 }
+            }
+        }
+
+        private int Analyze_MimeTypes(string uri) {
+            int i = 0;
+            foreach (string type in constants.http_mime_type) {
+                Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking mime-types {0}", type));
+                if (uri.EndsWith(type)) {
+                    // Increment mime-type counter
+                    results.MIME_TYPE_hit_counter[i]++;
+                    Logger.log_evt(Logger.log_levels.debugging, string.Format("Current request mime type is {0}.", type));
+                    return i;
+                }
+                i++;
+            }
+            return i -1;
+        }
+
+        public void DumpResults() {
+            Console.WriteLine("Hourly hit stats:");
+            int i = 0;
+            for (int j = 0; j < 24; j++) {
+                if (j < 10) {
+                    if (results.HOURLY_hit_counter[i, 0] > 0 || config.no_null == false) {
+                        Console.WriteLine("\t0{0}:00 {1}", i.ToString(), results.HOURLY_hit_counter[i, 0].ToString());
+                    }
+                } else {
+                    if (results.HOURLY_hit_counter[i, 0] > 0 || config.no_null == false) {
+                        Console.WriteLine("\t{0}:00 {1}", i.ToString(), results.HOURLY_hit_counter[i, 0].ToString());
+                    }
+                }
+                i++;
+            }
+
+            Console.WriteLine("Mime-type stats");
+            int k = 0;
+            foreach (int j in results.MIME_TYPE_hit_counter) {
+                if (j > 0 || config.no_null == false)
+                    Console.WriteLine("\t{0}: {1}", constants.http_mime_type[k], j.ToString());
+                k++;
             }
         }
 
