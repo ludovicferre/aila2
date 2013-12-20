@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+	<title>aila2: result viewer</title>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
+</head>
+<body>
+	<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
+	<div id="webapp_chart_div" style="width: 900px; height: 300px;"></div>
+	<div id="agent_chart_div" style="width: 900px; height: 300px;"></div>
+	<div id="mime_chart_div" style="width: 900px; height: 300px;"></div>
+</body>
+	 <script type="text/javascript">
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.setOnLoadCallback(SubmitRequest);
+
+		var result_file = window.location.search.substring(1).toLowerCase();
+		var result_json;
+
+		function SubmitRequest() {
+		  new Ajax.Request(result_file, {
+			  method: 'get',
+			  onSuccess: successFunc,
+			  onFailure:  failureFunc
+		  });		 
+		}
+
+		function successFunc(response) {
+			 if (200 == response.status){
+				result_json = response.responseJSON;
+			}
+			drawCharts();
+		}
+		
+		function failureFunc(response){
+			 alert("File " + result_file + " could not be loaded..." );
+		}
+		
+		function drawCharts() {
+			var table = result_json.stats.hourly
+			var data_hourly = google.visualization.arrayToDataTable(table);
+
+			var options_hourly = {
+			  title: 'Hourly statistics',
+			  hAxis: {title: 'Hour'}
+			};
+
+			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div'));
+			chart_hourly.draw(data_hourly, options_hourly);
+			
+			table = result_json.stats.mime_type;
+			var data_mime = google.visualization.arrayToDataTable(table);
+			var options_mime = {
+			  title: 'Mime type statistics',
+			  hAxis: {title: 'Mime types'},
+  			  colors: ['red']
+			};
+
+			var chart_mime = new google.visualization.ColumnChart(document.getElementById('mime_chart_div'));
+			chart_mime.draw(data_mime, options_mime);
+
+			table = result_json.stats.web_application;
+			
+			for (var i = 0; i < table.length; i++) {
+				table[i].splice(2);
+			}
+			
+			var head = table.slice(0);
+			head.splice(1);
+			table.shift();
+			table.sort();
+			var data = head.concat(table);
+			
+			var data_webapp = google.visualization.arrayToDataTable(data);
+			var options_webapp = {
+			  title: 'Web-application statistics',
+			  hAxis: {title: 'URI Stem'}
+			};
+
+			var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_chart_div'));
+			chart_webapp.draw(data_webapp, options_webapp);
+			
+
+			table = result_json.stats.agent_interface;			
+			for (var i = 0; i < table.length; i++) {
+				table[i].splice(2);
+			}
+			
+			head = table.slice(0);
+			head.splice(1);
+			table.shift();
+			table.sort();
+			data = head.concat(table);
+			
+			var data_agent = google.visualization.arrayToDataTable(data);
+			var options_agent = {
+			  title: 'Agent interface statistics',
+			  hAxis: {title: 'Agent page'},
+   			  colors: ['orange']
+
+			};
+
+			var chart_agent = new google.visualization.ColumnChart(document.getElementById('agent_chart_div'));
+			chart_agent.draw(data_agent, options_agent);
+
+		}
+
+    </script>
+</html>

@@ -60,7 +60,7 @@ namespace Symantec.CWoC {
         public bool no_topper;
         public bool json_output;
         public bool debug;
-        public static bool progress_bar;
+        public bool progress_bar;
 
         public CLIConfig() {
             status = parse_results.check_error;
@@ -315,7 +315,7 @@ namespace Symantec.CWoC {
             schema = new SchemaParser();
             Timer.Init();
 
-            Logger.log_evt(Logger.log_levels.warning, string.Format("Generating file md5 hash..."));
+            Logger.log_evt(Logger.log_levels.information, string.Format("Generating file md5 hash..."));
             byte [] hash;
             using (MD5 md5 = MD5.Create()) {
                 using (FileStream stream = File.OpenRead(filename)) {
@@ -343,7 +343,7 @@ namespace Symantec.CWoC {
                         AnalyzeLine(ref line);
                         results.LineCount++;
 
-                        if (++i > 9999 && CLIConfig.progress_bar) {
+                        if (++i > 9999 && config.progress_bar) {
                             Console.Write("Processed {0} lines...\r", results.LineCount);
                             i = 0;
                         }
@@ -356,8 +356,10 @@ namespace Symantec.CWoC {
             }
             if (!config.csv_format) {
                 DumpResults();
-                Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
-                Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
+                if (config.progress_bar == true) {
+                    Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
+                    Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
+                }
             }
         }
 
@@ -478,59 +480,63 @@ namespace Symantec.CWoC {
         }
 
         public void DumpResults() {
-            Console.WriteLine("\n{{\n\t\"file\" : \"{0}\" ,", config.file_path);
-            Console.WriteLine("\t\"hash\" : \"{0}\" ,", md5_hash);
-            Console.WriteLine("\t\"linecount\" : {0} ,", results.DataLines.ToString());
-            Console.WriteLine("\t\"stats\" : {");
-            Console.WriteLine("\t\t\"hourly\" : \"Columns: Global, Post Event, Get Package Info, Get client Policies\",");
+
+            StringBuilder output = new StringBuilder();
+            output.AppendFormat("\n{{\n\t\"file\" : \"{0}\",\n", config.file_path);
+            output.AppendFormat("\t\"hash\" : \"{0}\",\n", md5_hash);
+            output.AppendFormat("\t\"linecount\" : {0},\n", results.DataLines.ToString());
+            output.Append("\t\"stats\" : {\n");
 
             // HOURLY STATS
 
-            Console.WriteLine("\t\t\"hourly\" : [");
+            output.Append("\t\t\"hourly\" : [\n");
+            output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Package Info\"],\n");
             for (int j = 0; j < 24; j++) {
                 if (j == 23)
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n\t\t], \n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
                 else
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
             }
 
             // MIME TYPE STATS
 
-            Console.WriteLine("\t\t\"mime-type\" : [");
+            output.AppendFormat("\t\t\"mime_type\" : [\n");
+            output.AppendFormat("\t\t\t[\"Mime type\", \"Hit #\"],\n");
             for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
                 if (j == results.MIME_TYPE_hit_counter.Length - 1)
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}]\n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}]\n\t\t], \n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
                 else
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}], \n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
             }
 
             // WEB-APPLICATION STATS
 
-            Console.WriteLine("\t\t\"web-application\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
-            Console.WriteLine("\t\t\"web-application\" : [");
+            output.AppendFormat("\t\t\"web_application\" : [\n");
+            output.AppendFormat("\t\t\t[\"Web-application\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\"], \n");
             for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
                 if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}] ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
                 } else {
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}], ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
                 }
             }
-            
-            Console.WriteLine("\t\t],");
+
+            output.AppendFormat("\t\t],\n");
 
             // AGENT INTERFACE STATS
 
-            Console.WriteLine("\t\t\"agent-interface\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
-            Console.WriteLine("\t\t\"agent-interface\" : [");
+            output.AppendFormat("\t\t\"agent_interface\" : [\n");
+            output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\"], \n");
             for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
                 if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}]", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
                 } else {
-                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}], ", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
                 }
             }
 
-            Console.WriteLine("\t\t]\n\t}\n}");
+            output.Append("\t\t]\n\t}\n}\n");
+            Console.WriteLine(output.ToString());
 
         }
 
