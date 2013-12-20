@@ -113,21 +113,22 @@ namespace Symantec.CWoC {
          * Atiris Agent Http requests enumeration
          * These are http request related to the Altiris Agent specifically
          ******************************************************************************/
-        enum ATRS_AGENT_REQ {
-	        _get_create_resource,
-	        _get_client_config,
+        public enum ATRS_AGENT_REQ {
+	        _post_event_asp,
+	        _post_event_aspx,
 	        _get_pkg_info,
+            _get_client_policy,
 	        _get_pkg_snapshot,
-	        _post_event,
+	        _create_resource,
 	        _get_license_details,
-	        _other_req,
-	        _not_applicable
+            _get_license,
+	        _other_req
         };
 
         /******************************************************************************
          * Reverse lookup for Altiris Agent Http requests
          ******************************************************************************/
-        public static readonly string [] atrs_agent_req = new string [] {
+        public static readonly string [] print_atrs_agent_req = new string [] {
 	        "Reg Client",
 	        "Get Policies",
 	        "Get Pkg Info",
@@ -147,21 +148,23 @@ namespace Symantec.CWoC {
 	        "Other"
         };
 
-        public static readonly string [] print_atrs_agent_req = new string [] {
-	        "CreateResource.aspx",
-	        "GetClientPolicies.aspx",
-	        "GetPackageInfo.aspx",
-	        "GetPackageSnapshot.aspx",
-	        "PostEvent.asp",
-	        "GetLicense.asmx",
-	        "Other"
+        public static readonly string [] atrs_agent_req = new string [] {
+	        "postevent.asp",
+	        "postevent.aspx",
+	        "getpackageinfo.aspx",
+	        "getclientpolicies.aspx",
+	        "getpackagesnapshot.aspx",
+	        "createresource.aspx",
+	        "getlicense.asmx",
+            "getlicensedetails.aspx",
+	        "other"
         };
 
         /******************************************************************************
          * Http Mime types enumeration
          * Standard html mime types found in a Notificatoin Server
          ******************************************************************************/
-        enum HTTP_MIME_TYPE {
+        public enum HTTP_MIME_TYPE {
 	        _htm,
 	        _html,
 	        _asp,
@@ -203,7 +206,7 @@ namespace Symantec.CWoC {
         /******************************************************************************
          * IIS Return codes enumeration
          ******************************************************************************/
-        enum IIS_STATUS_CODES {
+        public enum IIS_STATUS_CODES {
 	        _iis_success,
 	        _iis_redirect,
 	        _iis_client_error,
@@ -230,7 +233,7 @@ namespace Symantec.CWoC {
         /******************************************************************************
          * IIS Win32 Return codes enumeration
          ******************************************************************************/
-        enum IIS_WIN32_STATUS {
+        public enum IIS_WIN32_STATUS {
 	        _win32_success,
 	        _win32_other
         };

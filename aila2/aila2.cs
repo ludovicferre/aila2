@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Symantec.CWoC {
@@ -179,13 +180,14 @@ namespace Symantec.CWoC {
         public int [] IIS_WIN32_STATUS_hit_counter;
 
         public long [,] WEBAPP_Hit_counter;
+        public long [,] AGENT_Hit_counter;
 
         public int [,] HOURLY_hit_counter;
 
         public ResultSet() {
             LineCount = DataLines = SchemaDef = 0;
 
-            HOURLY_hit_counter = new int[24, 5];
+            HOURLY_hit_counter = new int[24, 5]; // Total, PostEvent, PkgInfo, GetPolicies, ?
 
             IIS_STATUS_hit_counter = new int[10];
             IIS_SUB_STATUS_hit_counter = new int[10];
@@ -195,6 +197,7 @@ namespace Symantec.CWoC {
 
             // We track hit count, total duration and max duration per web-app
             WEBAPP_Hit_counter = new long[constants.atrs_iis_vdir.Length, 3];
+            AGENT_Hit_counter = new  long[constants.atrs_agent_req.Length, 3];
 
         }
     }
@@ -295,11 +298,14 @@ namespace Symantec.CWoC {
         private int _timetaken;
         private int _status;
         private int _substatus;
-        private int _win32status;
+        private long _win32status;
+
+        private string md5_hash;
 
         public LogAnalyzer (CLIConfig c) {
             current_line = new string [11];
             config = c;
+            md5_hash = "";
         }
 
 
@@ -308,6 +314,20 @@ namespace Symantec.CWoC {
             results = new ResultSet();
             schema = new SchemaParser();
             Timer.Init();
+
+            Logger.log_evt(Logger.log_levels.warning, string.Format("Generating file md5 hash..."));
+            byte [] hash;
+            using (MD5 md5 = MD5.Create()) {
+                using (FileStream stream = File.OpenRead(filename)) {
+                    hash = md5.ComputeHash(stream);
+                }
+            }
+
+
+            StringBuilder sBuilder = new StringBuilder();
+            for (int i = 0; i < hash.Length; i++)
+                sBuilder.Append(hash[i].ToString("x2"));
+            md5_hash = sBuilder.ToString();
 
             if (config.csv_format) {
                 foreach (string s in SchemaParser.SupportedFields)
@@ -320,7 +340,7 @@ namespace Symantec.CWoC {
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
                         Logger.log_evt(Logger.log_levels.debugging, string.Format("Parsing line below ###\n", line));
-                        AnalyzeLine(line);
+                        AnalyzeLine(ref line);
                         results.LineCount++;
 
                         if (++i > 9999 && CLIConfig.progress_bar) {
@@ -341,7 +361,7 @@ namespace Symantec.CWoC {
             }
         }
 
-        private void AnalyzeLine(string line) {
+        private void AnalyzeLine(ref string line) {
             Logger.log_evt(Logger.log_levels.debugging, "Starting detailed line analysis...");
             if (line.StartsWith("#")) {
                 Logger.log_evt(Logger.log_levels.debugging, "We have a commented line");
@@ -376,7 +396,7 @@ namespace Symantec.CWoC {
                     _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
                     _status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.status]);;
                     _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]);;
-                    _win32status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
+                    _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
 
 
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
@@ -385,16 +405,16 @@ namespace Symantec.CWoC {
 
                     // Analyse mime types
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
-                    Analyze_MimeTypes(current_line[(int)SchemaParser.FieldPositions.uristem]);
+                    Analyze_MimeTypes(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
                     
                     // Analyze web-application
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part III (web-apps) ...");
-                    Analyze_WebApp(current_line[(int)SchemaParser.FieldPositions.uristem]);
+                    Analyze_WebApp(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
                 }
             }
         }
 
-        private int Analyze_MimeTypes(string uri) {
+        private int Analyze_MimeTypes(ref string uri) {
             int i = 0;
             foreach (string type in constants.http_mime_type) {
                 Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking mime-types {0}", type));
@@ -410,7 +430,7 @@ namespace Symantec.CWoC {
             return i -1;
         }
 
-        private int Analyze_WebApp(string uri) {
+        private int Analyze_WebApp(ref string uri) {
             int i = 0;
             foreach (string app in constants.atrs_iis_vdir) {
                 Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
@@ -420,8 +440,13 @@ namespace Symantec.CWoC {
                 }
                 i++;
             }
-            if (i >= constants.atrs_iis_vdir.Length)
+
+            if (i == 0) {
+                // We are inside the Altiris-NS-Agent web-app. Do further analysis.
+                Analyze_NSAgent(ref uri);
+            } else if (i >= constants.atrs_iis_vdir.Length) {
                 i = constants.atrs_iis_vdir.Length - 1;
+            }
             results.WEBAPP_Hit_counter[i, 0]++;
             results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
             if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]))
@@ -429,32 +454,69 @@ namespace Symantec.CWoC {
             return 0;
         }
 
-        public void DumpResults() {
-            Console.WriteLine("{{\n\tfile : {0} ,", config.file_path);
-            Console.WriteLine("\thash : ... ,");
-            Console.WriteLine("\tstats : {");
-            Console.WriteLine("\t\thourly : [");
-            for (int j = 0; j < 24; j++) {
-                if (j == 23)
-                    Console.WriteLine("\t\t\t{0} : {1} \n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString());
-                else
-                    Console.WriteLine("\t\t\t{0} : {1}, ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString());
-            }
-            Console.WriteLine("\t\tmime-type : [");
-            for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
-                if (j == results.MIME_TYPE_hit_counter.Length - 1)
-                    Console.WriteLine("\t\t\t{0} : {1} \n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
-                else
-                    Console.WriteLine("\t\t\t{0} : {1}, ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
-            }
-            Console.WriteLine("\t\tweb-application : [");
-            for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
-                if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    Console.WriteLine("\t\t\t\"{0}\" : [{1}, {2}, {3}] ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
-                } else {
-                    Console.WriteLine("\t\t\t\"{0}\" : [{1}, {2}, {3}], ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+        private int Analyze_NSAgent(ref string uri) {
+            int i = 0;
+            for (i = 0; i < constants.atrs_agent_req.Length; i++) {
+                string page_name = constants.atrs_agent_req[i];
+                if (uri.EndsWith(page_name)) {
+                    results.AGENT_Hit_counter[i, 0]++;
+                    results.AGENT_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                    if (results.AGENT_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]))
+                        results.AGENT_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                    break;
                 }
             }
+            if (i == (int)constants.ATRS_AGENT_REQ._post_event_asp || i == (int) constants.ATRS_AGENT_REQ._post_event_aspx) {
+                // Add to hourly accounting
+                results.HOURLY_hit_counter[_hour, 1]++;
+            } else if (i == (int) constants.ATRS_AGENT_REQ._get_pkg_info) {
+                results.HOURLY_hit_counter[_hour, 2]++;
+            } else if (i == (int) constants.ATRS_AGENT_REQ._get_client_policy){
+                results.HOURLY_hit_counter[_hour, 3]++;
+            }
+            return 0;
+        }
+
+        public void DumpResults() {
+            Console.WriteLine("\n{{\n\t\"file\" : \"{0}\" ,", config.file_path);
+            Console.WriteLine("\t\"hash\" : \"{0}\" ,", md5_hash);
+            Console.WriteLine("\t\"linecount\" : {0} ,", results.DataLines.ToString());
+            Console.WriteLine("\t\"stats\" : {");
+            Console.WriteLine("\t\t\"hourly\" : \"Columns: Global, Post Event, Get Package Info, Get client Policies\",");
+            Console.WriteLine("\t\t\"hourly\" : [");
+            for (int j = 0; j < 24; j++) {
+                if (j == 23)
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}, {4}] }}\n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                else
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}, {4}] }}, ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+            }
+            Console.WriteLine("\t\t\"mime-type\" : [");
+            for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
+                if (j == results.MIME_TYPE_hit_counter.Length - 1)
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : {1} }}\n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                else
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : {1} }}, ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+            }
+            Console.WriteLine("\t\t\"web-application\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
+            Console.WriteLine("\t\t\"web-application\" : [");
+            for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
+                if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }} ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                } else {
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}, ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                }
+            }
+            Console.WriteLine("\t\t],");
+            Console.WriteLine("\t\t\"agent-interface\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
+            Console.WriteLine("\t\t\"agent-interface\" : [");
+            for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
+                if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                } else {
+                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}, ", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                }
+            }
+
             Console.WriteLine("\t\t]\n\t}\n}");
 
         }
