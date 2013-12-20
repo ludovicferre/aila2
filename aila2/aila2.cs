@@ -483,37 +483,50 @@ namespace Symantec.CWoC {
             Console.WriteLine("\t\"linecount\" : {0} ,", results.DataLines.ToString());
             Console.WriteLine("\t\"stats\" : {");
             Console.WriteLine("\t\t\"hourly\" : \"Columns: Global, Post Event, Get Package Info, Get client Policies\",");
+
+            // HOURLY STATS
+
             Console.WriteLine("\t\t\"hourly\" : [");
             for (int j = 0; j < 24; j++) {
                 if (j == 23)
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}, {4}] }}\n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n\t\t], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
                 else
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}, {4}] }}, ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], ", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
             }
+
+            // MIME TYPE STATS
+
             Console.WriteLine("\t\t\"mime-type\" : [");
             for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
                 if (j == results.MIME_TYPE_hit_counter.Length - 1)
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : {1} }}\n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}]\n\t\t], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
                 else
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : {1} }}, ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}], ", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
             }
+
+            // WEB-APPLICATION STATS
+
             Console.WriteLine("\t\t\"web-application\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
             Console.WriteLine("\t\t\"web-application\" : [");
             for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
                 if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }} ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}] ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
                 } else {
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}, ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}], ", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
                 }
             }
+            
             Console.WriteLine("\t\t],");
+
+            // AGENT INTERFACE STATS
+
             Console.WriteLine("\t\t\"agent-interface\" : \"Columns: Hit count, Sum(time-taken), Max(time-taken)\", ");
             Console.WriteLine("\t\t\"agent-interface\" : [");
             for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
                 if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}]", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
                 } else {
-                    Console.WriteLine("\t\t\t{{ \"{0}\" : [{1}, {2}, {3}] }}, ", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    Console.WriteLine("\t\t\t[\"{0}\", {1}, {2}, {3}], ", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
                 }
             }
 
