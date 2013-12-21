@@ -54,7 +54,7 @@ namespace Symantec.CWoC {
         public bool no_null;
         public bool summary_only;
         public static Logger.log_levels log_level = Logger.log_levels.warning;
-        public bool dump_cache;
+        public bool dump_csv;
         public bool csv_format;
         public bool query_shell;
         public bool no_topper;
@@ -62,13 +62,14 @@ namespace Symantec.CWoC {
         public bool debug;
         public bool progress_bar;
         public string out_path;
+        public int time_taken;
 
         public CLIConfig() {
             status = parse_results.check_error;
             file_path = "";
             no_null = false;
             summary_only = true;
-            dump_cache = true;
+            dump_csv = true;
             csv_format = false;
             query_shell = false;
             no_topper = false;
@@ -76,6 +77,7 @@ namespace Symantec.CWoC {
             debug = false;
             progress_bar = true;
             out_path = "";
+            time_taken = 0;
         }
 
         public enum parse_results {
@@ -137,8 +139,9 @@ namespace Symantec.CWoC {
                     }
                 }
 
-                if (argv[i] == "-ndc" || argv[i] == "--no-dump-cache") {
-                    dump_cache = false;
+                if (argv[i] == "-t" || argv[i] == "--time-taken") {
+                    dump_csv = true;
+                    time_taken = Convert.ToInt32(argv[++i]);
                 }
 
                 if (argv[i] == "-o" || argv[i] == "--out-path") {
@@ -303,6 +306,9 @@ namespace Symantec.CWoC {
         private string md5_hash;
         private string filename;
 
+        private StreamWriter dump_writer;
+
+
         public LogAnalyzer (CLIConfig c) {
             current_line = new string [11];
             config = c;
@@ -335,6 +341,14 @@ namespace Symantec.CWoC {
                 foreach (string s in SchemaParser.SupportedFields)
                     Console.Write("{0};", s);
             }
+            if (config.dump_csv) {
+                dump_writer = new StreamWriter(config.out_path + "\\" + filename.Replace(".log", "_" + config.time_taken.ToString() + ".log"));
+                dump_writer.Write("#Fields: ");
+                foreach (string s in SchemaParser.SupportedFields)
+                    dump_writer.Write("{0} ", s);
+                dump_writer.Write("\n");
+            }
+
             string line = "";
             try {
                 using (StreamReader r = new StreamReader(filepath)){
@@ -356,6 +370,11 @@ namespace Symantec.CWoC {
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine(line);
             }
+            // Close the dump writer now...
+            dump_writer.Flush();
+            dump_writer.Close();
+            dump_writer.Dispose();
+
             if (!config.csv_format) {
                 DumpResults();
                 if (config.progress_bar == true) {
@@ -402,6 +421,11 @@ namespace Symantec.CWoC {
                     _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]);;
                     _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
 
+                    if (config.dump_csv && _timetaken > config.time_taken) {
+                        foreach (string s in current_line)
+                            dump_writer.Write("{0} ", s);
+                        dump_writer.Write("\n");
+                    }
 
                     Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
                     // Global hourly stats
