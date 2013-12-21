@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+	<title>aila2 landing</title>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
+</head>
+<body>
+<h2>aila2 web-portal</h2>
+<div id="main_content">
+</div>
+<div id="fallback_content" style="display:none">
+<p>aila2 file path: <input type="text" id="uri"><button onclick="submit_path()">View data</button></p>
+</div>
+</body>
+<script type="text/javascript">
+
+	var json_config;
+	SubmitRequest("siteconfig2.json");
+
+	function submit_path() {
+		var e = document.getElementById("uri").value;
+		window.location.assign("aila2.html?" + e);
+	}
+
+	function SubmitRequest(uri) {
+			new Ajax.Request(uri, {
+				method: 'get',
+				onSuccess: successFunc,
+				onFailure: failureFunc,
+				onException: failureFunc
+			});
+	}
+
+	function successFunc(response) {
+		if (200 == response.status) {
+			json_config = response.responseJSON;
+		}
+		useConfig();
+	}
+
+	function failureFunc() {
+		document.getElementById("fallback_content").style.display = "block";
+	}
+	
+	function useConfig() {
+		var file_count = json_config.file_list.length;
+		if (file_count == 0)
+			return;
+			
+		json_config.file_list.reverse();
+		var main_content = document.getElementById("main_content");
+		main_content.innerHTML += "<p>Configuration file found. We currently have the following json files available:</p>";
+		main_content.innerHTML += "<ul>";
+		for (var i = 0; i < file_count ; i++) {
+			main_content.innerHTML += "<li><a href='aila2.html?" + json_config.file_list[i] + "'>" + json_config.file_list[i] + "</a></li>"; 
+		}
+		main_content.innerHTML += "</ul>"
+		
+	}
+</script>
+</html>
