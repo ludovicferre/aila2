@@ -61,6 +61,7 @@ namespace Symantec.CWoC {
         public bool json_output;
         public bool debug;
         public bool progress_bar;
+        public string out_path;
 
         public CLIConfig() {
             status = parse_results.check_error;
@@ -74,6 +75,7 @@ namespace Symantec.CWoC {
             json_output = false;
             debug = false;
             progress_bar = true;
+            out_path = "";
         }
 
         public enum parse_results {
@@ -139,15 +141,13 @@ namespace Symantec.CWoC {
                     dump_cache = false;
                 }
 
-                if (argv[i] == "-qs" || argv[i] == "--query-shell") {
-                    query_shell = true;
-                    csv_format = false;
-                    dump_cache = false;
+                if (argv[i] == "-o" || argv[i] == "--out-path") {
+                    out_path = argv[++i];
                 }
 
                 if (argv[i] == "-nt" || argv[i] == "--no-topper") {
                     no_topper = true;
-                }
+                } 
                 if (argv[i] == "-js" || argv[i] == "--json") {
                     json_output = true;
                     csv_format = false;
@@ -325,7 +325,6 @@ namespace Symantec.CWoC {
                     hash = md5.ComputeHash(stream);
                 }
             }
-
 
             StringBuilder sBuilder = new StringBuilder();
             for (int i = 0; i < hash.Length; i++)
@@ -546,6 +545,7 @@ namespace Symantec.CWoC {
 
             output.Append("\t\t]\n\t}\n}\n");
             Console.WriteLine(output.ToString());
+            SaveToFile(config.out_path + "\\" + filename + ".json", output.ToString());
 
         }
 
