@@ -301,6 +301,7 @@ namespace Symantec.CWoC {
         private long _win32status;
 
         private string md5_hash;
+        private string filename;
 
         public LogAnalyzer (CLIConfig c) {
             current_line = new string [11];
@@ -309,16 +310,18 @@ namespace Symantec.CWoC {
         }
 
 
-        public void AnalyzeFile (string filename) {
-            // Count lines
+        public void AnalyzeFile (string filepath) {
+            Timer.Init();
+
             results = new ResultSet();
             schema = new SchemaParser();
-            Timer.Init();
+
+            filename = filepath.Substring(filepath.LastIndexOf('\\') + 1);
 
             Logger.log_evt(Logger.log_levels.information, string.Format("Generating file md5 hash..."));
             byte [] hash;
             using (MD5 md5 = MD5.Create()) {
-                using (FileStream stream = File.OpenRead(filename)) {
+                using (FileStream stream = File.OpenRead(filepath)) {
                     hash = md5.ComputeHash(stream);
                 }
             }
@@ -335,7 +338,7 @@ namespace Symantec.CWoC {
             }
             string line = "";
             try {
-                using (StreamReader r = new StreamReader(filename)){
+                using (StreamReader r = new StreamReader(filepath)){
                     int i = 0;
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
@@ -358,7 +361,7 @@ namespace Symantec.CWoC {
                 DumpResults();
                 if (config.progress_bar == true) {
                     Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
-                    Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filename, results.SchemaDef, results.DataLines);
+                    Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filepath, results.SchemaDef, results.DataLines);
                 }
             }
         }
@@ -479,10 +482,16 @@ namespace Symantec.CWoC {
             return 0;
         }
 
+        private void SaveToFile(string filepath, string data) {
+            using (StreamWriter outfile = new StreamWriter(filepath.ToLower())) {
+                outfile.Write(data);
+            }
+        }
+
         public void DumpResults() {
 
             StringBuilder output = new StringBuilder();
-            output.AppendFormat("\n{{\n\t\"file\" : \"{0}\",\n", config.file_path);
+            output.AppendFormat("\n{{\n\t\"file\" : \"{0}\",\n", filename);
             output.AppendFormat("\t\"hash\" : \"{0}\",\n", md5_hash);
             output.AppendFormat("\t\"linecount\" : {0},\n", results.DataLines.ToString());
             output.Append("\t\"stats\" : {\n");
