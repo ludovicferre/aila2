@@ -4,16 +4,110 @@
 	<title>aila2: result viewer</title>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
+	<style type="text/css">
+        body { font-family: Arial;}
+        #_menu {
+	        position: fixed;
+	        top: 20px;
+	        padding-bottom: 2px;
+	        padding-top: 2px;
+	        left:920px;
+	        text-align: left;
+        }
+        .menu{
+	        padding-top:0px;
+	        padding-bottom: 2px;
+	        color: #000000;
+	        height: 20px;
+	        left: 920px;
+            top: 5px;
+	        position: fixed;
+	        font-size: 10px;
+        }
+        .submenu{
+	        display: block;
+	        height: 19px;
+	        padding-top: 2px;
+	        padding-right: 2px;
+	        color: #333333;
+        }
+
+        .hide{
+        display: none;
+        }
+        .show{
+        display: block;
+        }
+
+	</style>
 </head>
-<body>
+<body id = "top">
+    <a class='menu' onclick='showhide("_menu")'><b>[Navigation]</b></a>
+    <div id='_menu' class='show'> 
+        <a href='#top' class='submenu'>Top</a>
+        <a href='#hourly_chart' class='submenu'>Hourly chart</a>
+        <a href='#webapp_chart' class='submenu'>Web-app chart</a>
+        <a href='#agent_chart' class='submenu'>NS-Agent chart</a>
+        <a href='#mime_chart' class='submenu'>Mime-type chart chart</a>
+        <a href='#webapp_timetaken_chart' class='submenu'>Web-app time-taken chart</a>
+		<a href="#webapp_table" class="submenu">Web application table</a>
+		<a href="#agent_table" class="submenu">Agent interface table</a>		
+    </div>
+	<h2>aila2 - Charts</h2>
+	<h3 id ="hourly_chart">Hourly hit counts</h3>
 	<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
+	<h3 id="webapp_chart">Web-app distribution</h3>
 	<div id="webapp_chart_div" style="width: 900px; height: 300px;"></div>
+	<h3 id="agent_chart">Altiris Agent Interfaces</h3>
 	<div id="agent_chart_div" style="width: 900px; height: 300px;"></div>
+	<h3 id="mime_chart">Mime types distribution</h3>
 	<div id="mime_chart_div" style="width: 900px; height: 300px;"></div>
+	<h3 id="webapp_timetaken_chart">Accumulated time-taken per web-app</h3>
+	<div id="webapp_timetaken_chart_div" style="width: 900px; height: 300px;"></div>
+	<h2>Raw data sets</h2>
+	<h3 id='webapp_table'>Web application data</h3>
+	<div id='webapp_table_div' style="width: 900px;"></div>
+	<h3 id='agent_table'>Agent interface data</h3>
+	<div id='agent_table_div' style="width: 900px;"></div>
+	<div style="height:800px"/>
 </body>
 	 <script type="text/javascript">
+		menu_status = new Array();
+		menu_status["_menu"] = 'show';
+
+		function showhide(elem_id){
+			var switch_id = document.getElementById(elem_id);
+
+			if (menu_status[elem_id] != 'show') {
+				switch_id.className = 'show';
+				menu_status[elem_id] = 'show';
+			} else {
+				switch_id.className = 'hide';
+				menu_status[elem_id] = 'hide';
+			}
+		}
 		google.load("visualization", "1", {packages:["corechart"]});
+		google.load('visualization', '1', {packages:['table']});
+
 		google.setOnLoadCallback(SubmitRequest);
+		
+		function deepcopy(obj) {
+			if (Object.prototype.toString.call(obj) === '[object Array]') {
+				var out = [], i = 0, len = obj.length;
+				for ( ; i < len; i++ ) {
+					out[i] = arguments.callee(obj[i]);
+				}
+				return out;
+			}
+			if (typeof obj === 'object') {
+				var out = {}, i;
+				for ( i in obj ) {
+					out[i] = arguments.callee(obj[i]);
+				}
+				return out;
+			}
+			return obj;
+		}
 
 		var result_file = window.location.search.substring(1).toLowerCase();
 		var result_json;
@@ -38,21 +132,24 @@
 		}
 		
 		function drawCharts() {
-			var table = result_json.stats.hourly
+		
+			// Copy the hourly data to a new array
+			var table = deepcopy(result_json.stats.hourly);
 			var data_hourly = google.visualization.arrayToDataTable(table);
 
 			var options_hourly = {
-			  title: 'Hourly statistics',
+			  //title: 'Hourly statistics',
 			  hAxis: {title: 'Hour'}
 			};
 
 			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div'));
 			chart_hourly.draw(data_hourly, options_hourly);
 			
-			table = result_json.stats.mime_type;
+			// Copy mime-type data
+			table = deepcopy(result_json.stats.mime_type);
 			var data_mime = google.visualization.arrayToDataTable(table);
 			var options_mime = {
-			  title: 'Mime type statistics',
+			  //title: 'Mime type statistics',
 			  hAxis: {title: 'Mime types'},
   			  colors: ['red']
 			};
@@ -60,13 +157,14 @@
 			var chart_mime = new google.visualization.ColumnChart(document.getElementById('mime_chart_div'));
 			chart_mime.draw(data_mime, options_mime);
 
-			table = result_json.stats.web_application;
+			// Copy web-application data
+			table = deepcopy(result_json.stats.web_application);
 			
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(2);
 			}
 			
-			var head = table.slice(0);
+			var head = deepcopy(table);
 			head.splice(1);
 			table.shift();
 			table.sort();
@@ -74,20 +172,20 @@
 			
 			var data_webapp = google.visualization.arrayToDataTable(data);
 			var options_webapp = {
-			  title: 'Web-application statistics',
+			  //title: 'Web-application statistics',
 			  hAxis: {title: 'URI Stem'}
 			};
 
 			var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_chart_div'));
 			chart_webapp.draw(data_webapp, options_webapp);
 			
-
-			table = result_json.stats.agent_interface;			
+			// Copy agent interface 
+			table = deepcopy(result_json.stats.agent_interface);
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(2);
 			}
 			
-			head = table.slice(0);
+			head = deepcopy(table);
 			head.splice(1);
 			table.shift();
 			table.sort();
@@ -95,7 +193,7 @@
 			
 			var data_agent = google.visualization.arrayToDataTable(data);
 			var options_agent = {
-			  title: 'Agent interface statistics',
+			  //title: 'Agent interface statistics',
 			  hAxis: {title: 'Agent page'},
    			  colors: ['orange']
 
@@ -103,8 +201,41 @@
 
 			var chart_agent = new google.visualization.ColumnChart(document.getElementById('agent_chart_div'));
 			chart_agent.draw(data_agent, options_agent);
+			
+			// Accumulated wait time per web-application
+			table = deepcopy(result_json.stats.web_application);
+			
+			for (var i = 0; i < table.length; i++) {
+				table[i].splice(1, 1);
+				table[i].pop();
+			}
+
+			head = deepcopy(table);
+			head.splice(1);
+			table.shift();
+			table.sort();
+			data = head.concat(table);
+			
+			var data_webapp = google.visualization.arrayToDataTable(data);
+			var options_webapp = {
+			  //title: 'Web-application time-taken statistics',
+			  hAxis: {title: 'URI Stem'}
+			};
+
+			var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_timetaken_chart_div'));
+			chart_webapp.draw(data_webapp, options_webapp);
+			
+			var webapp_data = new google.visualization.arrayToDataTable(result_json.stats.web_application);
+			var webapp_table = new google.visualization.Table(document.getElementById('webapp_table_div'));
+			webapp_table.draw(webapp_data, {showRowNumber: true});
+			
+			var agent_data = new google.visualization.arrayToDataTable(result_json.stats.agent_interface);
+			var agent_table = new google.visualization.Table(document.getElementById('agent_table_div'));
+			agent_table.draw(agent_data, {showRowNumber: true});
 
 		}
+
+
 
     </script>
 </html>
