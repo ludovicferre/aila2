@@ -544,12 +544,17 @@ namespace Symantec.CWoC {
             // WEB-APPLICATION STATS
 
             output.AppendFormat("\t\t\"web_application\" : [\n");
-            output.AppendFormat("\t\t\t[\"Web-application\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\"], \n");
+            output.AppendFormat("\t\t\t[\"Web-application\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"], \n");
             for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
+                float avg = 0;
+                if (results.WEBAPP_Hit_counter[j, 1] > 0) {
+                    // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
+                    avg = (float)results.WEBAPP_Hit_counter[j, 1] / (float)results.WEBAPP_Hit_counter[j, 0];
+                }
                 if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), avg.ToString());
                 } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), avg.ToString());
                 }
             }
 
@@ -558,12 +563,17 @@ namespace Symantec.CWoC {
             // AGENT INTERFACE STATS
 
             output.AppendFormat("\t\t\"agent_interface\" : [\n");
-            output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\"], \n");
+            output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"], \n");
             for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
+                float avg = 0;
+                if (results.AGENT_Hit_counter[j, 1] > 0) {
+                    // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
+                    avg = (float)results.AGENT_Hit_counter[j, 1] / (float)results.AGENT_Hit_counter[j, 0];
+                }
                 if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), avg.ToString());
                 } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), avg.ToString());
                 }
             }
 
