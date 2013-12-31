@@ -69,7 +69,7 @@ namespace Symantec.CWoC {
             file_path = "";
             no_null = false;
             summary_only = true;
-            dump_csv = true;
+            dump_csv = false;
             csv_format = false;
             query_shell = false;
             no_topper = false;
@@ -371,9 +371,12 @@ namespace Symantec.CWoC {
                 Console.WriteLine(line);
             }
             // Close the dump writer now...
-            dump_writer.Flush();
-            dump_writer.Close();
-            dump_writer.Dispose();
+            try {
+                dump_writer.Flush();
+                dump_writer.Close();
+                dump_writer.Dispose();
+            } catch {
+            }
 
             if (!config.csv_format) {
                 DumpResults();
@@ -511,6 +514,11 @@ namespace Symantec.CWoC {
             }
         }
 
+        private string FloatToDottedString(float f) {
+            string s = f.ToString();
+            return s.Replace(',', '.');
+        }
+
         public void DumpResults() {
 
             StringBuilder output = new StringBuilder();
@@ -552,9 +560,9 @@ namespace Symantec.CWoC {
                     avg = (float)results.WEBAPP_Hit_counter[j, 1] / (float)results.WEBAPP_Hit_counter[j, 0];
                 }
                 if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), avg.ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                 } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), avg.ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                 }
             }
 
@@ -571,9 +579,9 @@ namespace Symantec.CWoC {
                     avg = (float)results.AGENT_Hit_counter[j, 1] / (float)results.AGENT_Hit_counter[j, 0];
                 }
                 if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), avg.ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                 } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), avg.ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                 }
             }
 
