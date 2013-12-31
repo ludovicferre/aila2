@@ -71,6 +71,26 @@
 		  };
 		}
 
+		function get_shortdate(filename) {
+			var year;
+			var month;
+			var day;
+
+			if (filename.startsWith("u_ex")) {
+				// Sample: u_ex130411.json
+				year = 2000 + parseInt(filename.substring(4, 6));
+				month = filename.substring(6, 8);
+				day = filename.substring(8, 10);
+			} else if (filename.startsWith("ex_")) {
+				// Sample: ex130324.json
+				year = 2000 + filename.substring(3, 5);
+				month = filename.substring(5, 7);
+				day = filename.substring(7, 9);
+			}
+			
+			return String(year) + "-" + String(month) + "-" + String(day);
+		}
+
 		function get_date(filename) {
 			var year;
 			var month;
@@ -91,11 +111,9 @@
 			return new Date(year, month -1, day);
 		}
 
-		function get_dayString(filename) {
-			var weekday =new Array("<b><i>Sunday</i></b>", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "<b><i>Saturday</i></b>");
-			var date = get_date(filename);
-			i = date.getDay()
-			return weekday[i];
+		function get_dayString(day) {
+			var weekday =new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
+			return weekday[day];
 		}
 
 		function get_dayInt(filename) {
@@ -160,19 +178,34 @@
 
 			// Emit the chart divs
 			var table_html = "";
-			var j = 0;
 			table_html += "<table><tr>";
+			var odd = false;
+			var j = -1;
+			var bg = "";
+			var fc = "";
+
 			for (var i = 0; i < file_count ; i++) {
 				var day = get_dayInt(file_list[i])
-				var bg = "";
-				if (day == 0 || day == 6) {
-					bg = "background-color:#b0c4de;"
-				}
-				table_html += 	"<td style=\"" + bg + " text-align: center;\"><p><a href=\"aila2.html?" + file_list[i] + "\">" + file_list[i]  +"</a> (" + get_dayString(file_list[i]) + ")</p><div id=\"hourly_chart_div" + String(i) + "\" style=\"width: 300px; height: 100px;\"></div></td>";
 				if (++j == 5) {
 					j = 0;
 					table_html += "</tr><tr>";
 				}
+				if (day == 0) {
+					if (odd) {
+						odd = false;
+					} else {
+						odd = true;
+					}
+				}
+				if (odd) {
+					bg = "background-color: grey;";
+					fc = "\" style=\"color: white;\"";
+				} else {
+					bg = "background-color: white;";
+					fc = "\" style=\"color: black; padding: 5;\"";
+				}
+				table_html += 	"<td style=\"" + bg + " text-align: center;\"><h4><a href=\"aila2.html?" + file_list[i] + fc + ">" + get_shortdate(file_list[i])  + " (" + get_dayString(day) + ")</a></h4>" 
+				table_html +=  "<div id=\"hourly_chart_div" + String(i) + "\" style=\"width: 300px; height: 100px;\"></div></td>";
 			}
 
 			table_html += "</table>";
@@ -187,7 +220,7 @@
 
 			var options_hourly = {
 				//title: file_list[file_index],
-				hAxis: {title: 'Hour'}
+				// hAxis: {title: 'Hour'}
 			};
 
 			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div' + String(file_index)));
