@@ -1,62 +1,203 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-	<title>aila2 landing</title>
+	<title>aila2 mosaic view</title>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
+	<style type="text/css">
+        body {
+			font-family: Arial;
+		}
+        #_menu {
+	        position: fixed;
+	        top: 20px;
+	        padding-bottom: 2px;
+	        padding-top: 2px;
+	        left:920px;
+	        text-align: left;
+        }
+        .menu{
+	        padding-top:0px;
+	        padding-bottom: 2px;
+	        color: #000000;
+	        height: 20px;
+	        left: 920px;
+            top: 5px;
+	        position: fixed;
+	        font-size: 10px;
+        }
+        .submenu{
+	        display: block;
+	        height: 19px;
+	        padding-top: 2px;
+	        padding-right: 2px;
+	        color: #333333;
+        }
+        .hide{
+			display: none;
+        }
+        .show{
+			display: block;
+        }
+	</style>
 </head>
-<body>
-<h2>aila2 web-portal</h2>
-<div id="main_content">
-</div>
-<div id="fallback_content" style="display:none">
-<p>aila2 file path: <input type="text" id="uri"><button onclick="submit_path()">View data</button></p>
-</div>
+<body id="main_content">
 </body>
-<script type="text/javascript">
+	 <script type="text/javascript">
+		/*
 
-	var json_config;
-	SubmitRequest("siteconfig2.json");
+		Process outline:
+			Get the site config
+			Sort it in reverse order
+			For each file
+				Emit html to receive the graph
+				Generate the graph
+		*/
 
-	function submit_path() {
-		var e = document.getElementById("uri").value;
-		window.location.assign("aila2.html?" + e);
-	}
+		var file_index = 0;
+		var file_list;
+		var result_json;
 
-	function SubmitRequest(uri) {
-			new Ajax.Request(uri, {
-				method: 'get',
-				onSuccess: successFunc,
-				onFailure: failureFunc,
-				onException: failureFunc
-			});
-	}
+		google.load("visualization", "1", {packages:["corechart"]});
+		google.load('visualization', '1', {packages:['table']});
 
-	function successFunc(response) {
-		if (200 == response.status) {
-			json_config = response.responseJSON;
+		google.setOnLoadCallback(get_siteconfig);
+
+		// Extend the String type to contain a startsWith function
+		if (typeof String.prototype.startsWith != 'function') {
+		  // see below for better implementation!
+		  String.prototype.startsWith = function (str){
+			return this.indexOf(str) == 0;
+		  };
 		}
-		useConfig();
-	}
 
-	function failureFunc() {
-		document.getElementById("fallback_content").style.display = "block";
-	}
-	
-	function useConfig() {
-		var file_count = json_config.file_list.length;
-		if (file_count == 0)
-			return;
+		function get_date(filename) {
+			var year;
+			var month;
+			var day;
+
+			if (filename.startsWith("u_ex")) {
+				// Sample: u_ex130411.json
+				year = 2000 + parseInt(filename.substring(4, 6));
+				month = filename.substring(6, 8);
+				day = filename.substring(8, 10);
+			} else if (filename.startsWith("ex_")) {
+				// Sample: ex130324.json
+				year = 2000 + filename.substring(4, 2);
+				month = filename.substring(6, 2);
+				day = filename.substring(8, 2);
+			}
 			
-		json_config.file_list.reverse();
-		var main_content = document.getElementById("main_content");
-		main_content.innerHTML += "<p>Configuration file found. We currently have the following json files available:</p>";
-		main_content.innerHTML += "<ul>";
-		for (var i = 0; i < file_count ; i++) {
-			main_content.innerHTML += "<li><a href='aila2.html?" + json_config.file_list[i] + "'>" + json_config.file_list[i] + "</a></li>"; 
+			return new Date(year, month -1, day);
 		}
-		main_content.innerHTML += "</ul>"
+
+		function get_dayString(filename) {
+			var weekday =new Array("<b><i>Sunday</i></b>", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "<b><i>Saturday</i></b>");
+			var date = get_date(filename);
+			i = date.getDay()
+			return weekday[i];
+		}
+
+		function get_dayInt(filename) {
+			var date = get_date(filename);
+			return date.getDay();
+		}
+
+		function deep_copy(obj) {
+			if (Object.prototype.toString.call(obj) === '[object Array]') {
+				var out = [], i = 0, len = obj.length;
+				for ( ; i < len; i++ ) {
+					out[i] = arguments.callee(obj[i]);
+				}
+				return out;
+			}
+			if (typeof obj === 'object') {
+				var out = {}, i;
+				for ( i in obj ) {
+					out[i] = arguments.callee(obj[i]);
+				}
+				return out;
+			}
+			return obj;
+		}
+
+		function get_datafile() {
+		  new Ajax.Request(file_list[file_index], {
+			  method: 'get',
+			  onSuccess: function(response) {
+				result_json = response.responseJSON;
+				draw_chart();
+			  },
+			  onFailure:  failure_func
+		  });
+		}
+
+		function get_siteconfig() {
+		  new Ajax.Request("siteconfig.json", {
+			  method: 'get',
+			  onSuccess: function(response) {
+				result_json = response.responseJSON;
+				process_siteconfig();
+			  },
+			  onFailure:  failure_func
+		  });		 
+		}
+
 		
-	}
-</script>
+		function failure_func(response){
+			 alert("File " + data_file + " could not be loaded..." );
+		}
+
+		function process_siteconfig() {
+			file_list = deep_copy(result_json.file_list);
+
+			var file_count = file_list.length;
+			if (file_count == 0)
+				return;
+
+			file_list.reverse();
+			var main_content = document.getElementById("main_content");
+
+			// Emit the chart divs
+			var table_html = "";
+			var j = 0;
+			table_html += "<table><tr>";
+			for (var i = 0; i < file_count ; i++) {
+				var day = get_dayInt(file_list[i])
+				var bg = "";
+				if (day == 0 || day == 6) {
+					bg = "background-color:#b0c4de;"
+				}
+				table_html += 	"<td style=\"" + bg + " text-align: center;\"><p><a href=\"aila2.html?" + file_list[i] + "\">" + file_list[i]  +"</a> (" + get_dayString(file_list[i]) + ")</p><div id=\"hourly_chart_div" + String(i) + "\" style=\"width: 300px; height: 100px;\"></div></td>";
+				if (++j == 5) {
+					j = 0;
+					table_html += "</tr><tr>";
+				}
+			}
+
+			table_html += "</table>";
+			main_content.innerHTML += table_html;
+
+			get_datafile();
+		}
+
+		function draw_chart() {
+			var table = deep_copy(result_json.stats.hourly);
+			var data_hourly = google.visualization.arrayToDataTable(table);
+
+			var options_hourly = {
+				//title: file_list[file_index],
+				hAxis: {title: 'Hour'}
+			};
+
+			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div' + String(file_index)));
+			chart_hourly.draw(data_hourly, options_hourly);
+			
+			file_index++;
+			if (file_index < file_list.length) {
+				get_datafile();
+			}
+		}
+
+    </script>
 </html>
