@@ -586,7 +586,7 @@ namespace Symantec.CWoC {
             }
 
             output.Append("\t\t]\n\t}\n}\n");
-            Console.WriteLine(output.ToString());
+            // Console.WriteLine(output.ToString());
             SaveToFile(config.out_path + "\\" + filename.Replace(".log", ".json"), output.ToString());
 
         }
