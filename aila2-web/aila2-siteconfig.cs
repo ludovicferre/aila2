@@ -51,7 +51,7 @@ Additional command line options:
                         return -1; // Incorrect agrs provided. Return error.
                     }
                 }
-            } else if (argc > 2) {
+            } else if (argc > 2 || argc == 0) {
                 Console.WriteLine(help_message);
                 return -1;
             }
@@ -79,7 +79,7 @@ Additional command line options:
                 json_data.AppendFormat("\t\t\"{0}\",\n", filename);
             }
 
-            json_data.Length = json_data.Length - 3; // Remove the last comma + LF + CR
+            json_data.Length = json_data.Length - 2; // Remove the last comma + \n
             json_data.AppendLine("\n\t]\n}");
 
             Console.WriteLine(json_data.ToString());

@@ -124,10 +124,11 @@ namespace Symantec.CWoC {
 Usage: aila2-runner -i <input path> -o <output path>
 
 aila2-runner will parse the input path for IIS log files (*.log) and will check
-if a corresponding file exists in the output path. If not the log file will be
-parsed with aila2 to generate a json result file in the output path.
+if a corresponding file exists in the output path (*.json). If not the log file
+will be parsed with aila2 to generate a json result file in the output path.
 
 Parameters:
+
     -h, --help          Show this help message
     -v, --version       Output program version only
 
