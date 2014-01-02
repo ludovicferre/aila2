@@ -216,7 +216,7 @@
 		function draw_chart() {
 			var data = deep_copy(result_json.stats.hourly);
 
-			var head = deep_copy(table);
+			var head = deep_copy(data);
 			head.splice(1);
 
 			data.shift();
