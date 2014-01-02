@@ -8,8 +8,46 @@ namespace Symantec.CWoC {
     class aila2_runner {
         static void Main(string[] args) {
             // Start with static source and destination dirs
-            string source = @"C:\inetpub\logs\logfiles\w3svc1\";
-            string destination = @"d:\aila2";
+
+            string source = "";
+            string destination = "";
+
+            string help_message = "aila2-runner command line help.\n\nThis tool requires the input and output directories to be provided in the following fashion:"
+                + "\n\t-i <path\\to\\input\\directory>"
+                + "\n\t-o <path\\to\\output\\directory>"
+                ;
+
+
+            if (args.Length == 0) {
+                Console.WriteLine(help_message);
+                return;
+            } else {
+                for (int i = 0; i < args.Length; i++) {
+                    if (args[i].ToLower() == "-i") {
+                        source = args[++i];
+                        continue;
+                    }
+                    if (args[i].ToLower() == "-o") {
+                        destination = args[++i];
+                        continue;
+                    }
+                    if (args[i].ToLower() == "-v") {
+                        Console.WriteLine("Version 1");
+                    }
+                }
+            }
+
+            if (source == "" || destination == "") {
+                Console.WriteLine("Error! i={0}, o={1}\n\n{2}", source, destination, help_message);
+                return;
+            }
+
+            if (!source.EndsWith("\\")) {
+                source = source + "\\";
+            }
+            if (!destination.EndsWith("\\")) {
+                destination= destination + "\\";
+            }
 
             /* Process outline
              *      Get the list of log files in source
@@ -44,7 +82,7 @@ namespace Symantec.CWoC {
             for (int i = 0; i < out_files.Length; i++) {
                 string f = out_files[i];
                 out_names[i] = f.Substring(f.LastIndexOf("\\") + 1);
-                Console.WriteLine("{0} :: {1} :: {2}", i.ToString(), f, out_names[i]);
+                // Console.WriteLine("{0} :: {1} :: {2}", i.ToString(), f, out_names[i]);
             }
 
             // Clear out log files here
@@ -57,7 +95,6 @@ namespace Symantec.CWoC {
                 foreach (string f in out_names) {
                     string in_short = in_names[i].Substring(0, in_names[i].Length - 4);
                     string out_short = f.TrimEnd().Substring(0, f.Length - 5);
-//                    Console.WriteLine("{0} :: {1}", in_short, out_short);
                     if (in_short == out_short) {
                         in_names[i] = "";
                         break;
@@ -67,7 +104,9 @@ namespace Symantec.CWoC {
 
         skip:
             // Now we can process each non-empty entry in in_names
-            foreach (string f in in_names) {
+            // but we skip the last file (as it should be today's files)
+            for (int i = 0; i < in_names.Length - 1; i++) {
+                string f = in_names[i];
                 if (f == "") {
                     continue;
                 }
@@ -75,7 +114,6 @@ namespace Symantec.CWoC {
 
                 Process aila2 = new Process();
                 aila2.StartInfo.FileName = "aila2\\aila2.exe";
-//                aila2.StartInfo.FileName = "cmd /k"; 
                 aila2.StartInfo.Arguments = String.Format("-f \"{0}{1}\" -o \"{2}\"", source, f, destination);
                 aila2.StartInfo.UseShellExecute = false;
                 aila2.StartInfo.RedirectStandardOutput = true;

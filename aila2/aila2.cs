@@ -145,7 +145,7 @@ namespace Symantec.CWoC {
                 }
 
                 if (argv[i] == "-o" || argv[i] == "--out-path") {
-                    out_path = argv[++i];
+                    out_path = argv[++i].Replace("\"", "");
                 }
 
                 if (argv[i] == "-nt" || argv[i] == "--no-topper") {
@@ -509,6 +509,7 @@ namespace Symantec.CWoC {
         }
 
         private void SaveToFile(string filepath, string data) {
+            Console.WriteLine(filepath);
             using (StreamWriter outfile = new StreamWriter(filepath.ToLower())) {
                 outfile.Write(data);
             }
@@ -587,7 +588,10 @@ namespace Symantec.CWoC {
 
             output.Append("\t\t]\n\t}\n}\n");
             // Console.WriteLine(output.ToString());
-            SaveToFile(config.out_path + "\\" + filename.Replace(".log", ".json"), output.ToString());
+            if (!config.out_path.EndsWith("\\")) {
+                config.out_path = config.out_path + "\\";
+            }
+            SaveToFile(config.out_path + filename.Replace(".log", ".json"), output.ToString());
 
         }
 
