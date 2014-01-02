@@ -7,7 +7,6 @@ using System.Text;
 
 namespace Symantec.CWoC {
     class aila2 {
-        private static readonly int version = 1;
         static int Main(string[] args) {
             if (args.Length == 0) {
                 Console.Write(HELP_MESSAGE);
@@ -34,9 +33,37 @@ namespace Symantec.CWoC {
             }
         }
 
-        private static readonly string VERSION_MESSAGE = "aila2 (Altiris IIS Log Analyser) is at version " + version + "\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
+        private static readonly string VERSION_MESSAGE = "aila2 version 1.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
 
-        private static readonly string HELP_MESSAGE = "\nUsage : aila2 [Parameter] [Option(s)]\n\nParameters:\n\t  -h, --help to show this help message\n\t  -f, --file <path_to_file>\n\nOptions:\n\t  -c, --csv-format\tFormat output using tab seperated values\n\t  -l, --log-level <lvl>\tOutput log data <= to <lvl> to stderr:\n\t\t--log-level  1 -> error\n\t\t--log-level  2 -> warning\n\t\t--log-level  4 -> information\n\t\t--log-level  8 -> verbose\n\t\t--log-level 16 -> debug\n\t -n0, --no-zero\t\tShow results including 0 counts\n\t-ndc, --no-dump-cache\tDo no writes the string cache content to file\n\t -nt, --no-topper\tDo not output the top 20 entries from caches\n\t -js, --json\t\tProduces JSON formatted output for aila-web\n\t  -S, --summary\t\tParse file for summary review only\n\t  -V, --version\t\tOutput program version only\n\nSamples:\n\taila2 --file iis.log --no-zero --log-level 8\n\taila2 -f iis.log -l 4 -n0\n\taila2 -f iis.log -n0\n\n{CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc\n";
+        private static readonly string HELP_MESSAGE = @"
+Usage : aila2 [Parameter] [Option(s)]
+
+Parameters:
+    -h, --help              Show this help message
+    -v, --version           Output program version only
+
+    -f, --file <file_path>  The IIS log file to parse
+
+Options:
+    -l, --log-level <lvl>   Output log data <= to <lvl> to stdout:
+            --log-level  1 -> error
+            --log-level  2 -> warning
+            --log-level  4 -> information
+            --log-level  8 -> verbose
+            --log-level 16 -> debug
+    -o, --out-path <path>   The location where the result file will be created.
+    -t, --time-taken <t>    Where t is a value in milli-second. When the option
+                            is used a new log file will be generated inside the
+                            input directory with all requests that took longer
+                            than t to complete.
+
+Samples:
+    aila2 -f iis.log
+    aila2 --file iis.log  -t 5000
+    aila2 -f iis.log -o c:\inetpub\wwwroot\aila2\
+
+{CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc
+";
 
     }
 
@@ -51,31 +78,18 @@ namespace Symantec.CWoC {
     class CLIConfig {
         public parse_results status;
         public string file_path;
-        public bool no_null;
-        public bool summary_only;
-        public static Logger.log_levels log_level = Logger.log_levels.warning;
-        public bool dump_csv;
-        public bool csv_format;
-        public bool query_shell;
-        public bool no_topper;
-        public bool json_output;
-        public bool debug;
+        public static Logger.log_levels log_level = Logger.log_levels.error;
+        public bool dump_log;
         public bool progress_bar;
         public string out_path;
         public int time_taken;
 
         public CLIConfig() {
             status = parse_results.check_error;
+
             file_path = "";
-            no_null = false;
-            summary_only = true;
-            dump_csv = false;
-            csv_format = false;
-            query_shell = false;
-            no_topper = false;
-            json_output = false;
-            debug = false;
-            progress_bar = true;
+            dump_log = false;
+            progress_bar = false;
             out_path = "";
             time_taken = 0;
         }
@@ -105,8 +119,10 @@ namespace Symantec.CWoC {
                         file_path = argv[++i];
                         current_check = true;
                         Logger.log_evt(Logger.log_levels.information , string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
+                        continue;
                     } else {
-                        current_check = false;
+                        status = parse_results.check_error;
+                        return 0;
                     }
                 }
 
@@ -115,52 +131,42 @@ namespace Symantec.CWoC {
                     return 0;
                 }
 
-                if (argv[i] == "-c" || argv[i] == "--csv-format") {
-                    csv_format = true;
-                    no_topper = true;
+                if (argv[i] == "-p" || argv[i] == "--progress") {
+                    progress_bar = true;
+                    continue;
                 }
-
-                if (argv[i] == "-n0" || argv[i] == "--no-zero")
-                    no_null = true;
-
-                if (argv[i] == "-S" || argv[i] == "--summary")
-                    summary_only = true;
-
-                if (argv[i] == "-np" || argv[i] == "--no-progress")
-                    progress_bar = false;
 
                 if (argv[i] == "-l" || argv[i] == "--log-level") {
                     try {
                         int l = Convert.ToInt32(argv[i + 1]);
                         log_level = (Logger.log_levels) l;
                         i++;
+                        continue;
                     } catch {
                         status = parse_results.check_error;
+                        return -1;
                     }
                 }
 
                 if (argv[i] == "-t" || argv[i] == "--time-taken") {
-                    dump_csv = true;
-                    time_taken = Convert.ToInt32(argv[++i]);
+                    try {
+                        time_taken = Convert.ToInt32(argv[++i]);
+                        dump_log = true;
+                        continue;
+                    } catch {
+                        status = parse_results.check_error;
+                        return -1;
+                    }
                 }
 
                 if (argv[i] == "-o" || argv[i] == "--out-path") {
                     out_path = argv[++i].Replace("\"", "");
                 }
-
-                if (argv[i] == "-nt" || argv[i] == "--no-topper") {
-                    no_topper = true;
-                } 
-                if (argv[i] == "-js" || argv[i] == "--json") {
-                    json_output = true;
-                    csv_format = false;
-                }
                 i++;
             }
+
             if (current_check == true) {
                 status = parse_results.check_success;
-                if (csv_format == true)
-                    progress_bar = false;
                 Logger.log_evt(Logger.log_levels.verbose, "Returning success (0) to caller.");
                 return 0;
             } else {
@@ -337,11 +343,7 @@ namespace Symantec.CWoC {
                 sBuilder.Append(hash[i].ToString("x2"));
             md5_hash = sBuilder.ToString();
 
-            if (config.csv_format) {
-                foreach (string s in SchemaParser.SupportedFields)
-                    Console.Write("{0};", s);
-            }
-            if (config.dump_csv) {
+            if (config.dump_log) {
                 dump_writer = new StreamWriter(config.out_path + "\\" + filename.Replace(".log", "_" + config.time_taken.ToString() + ".log"));
                 dump_writer.Write("#Fields: ");
                 foreach (string s in SchemaParser.SupportedFields)
@@ -378,12 +380,10 @@ namespace Symantec.CWoC {
             } catch {
             }
 
-            if (!config.csv_format) {
-                DumpResults();
-                if (config.progress_bar == true) {
-                    Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
-                    Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filepath, results.SchemaDef, results.DataLines);
-                }
+            DumpResults();
+            if (config.progress_bar == true) {
+                Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
+                Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filepath, results.SchemaDef, results.DataLines);
             }
         }
 
@@ -396,53 +396,49 @@ namespace Symantec.CWoC {
                         results.SchemaDef += schema.ParseSchemaString(line.ToLower());
                     }
                 }
-            } else {
-                Logger.log_evt(Logger.log_levels.debugging, "The current line contains data...");
-
-                results.DataLines++;
-                // Tokenize the current line
-                string[] row_data = line.ToLower().Split(' ');
-                int i = 0;
-                current_line.Initialize();
-
-                Logger.log_evt(Logger.log_levels.debugging, "Loading line data into storage array...");
-                foreach (int j in schema.field_positions) {
-                    current_line[i] = row_data[j];
-                    if(CLIConfig.log_level == Logger.log_levels.debugging)
-                        Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], current_line[i]);
-                    i++;
-                }
-
-                if (config.csv_format) {
-                    Console.WriteLine(line.Replace(' ', ';'));
-                } else {
-
-                    // Convert the values from string to in now
-                    _hour = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.time].Substring(0, 2));
-                    _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
-                    _status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.status]);;
-                    _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]);;
-                    _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
-
-                    if (config.dump_csv && _timetaken > config.time_taken) {
-                        foreach (string s in current_line)
-                            dump_writer.Write("{0} ", s);
-                        dump_writer.Write("\n");
-                    }
-
-                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
-                    // Global hourly stats
-                    results.HOURLY_hit_counter[_hour, 0]++;
-
-                    // Analyse mime types
-                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
-                    Analyze_MimeTypes(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
-                    
-                    // Analyze web-application
-                    Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part III (web-apps) ...");
-                    Analyze_WebApp(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
-                }
+                return;
             }
+
+            Logger.log_evt(Logger.log_levels.debugging, "The current line contains data...");
+
+            results.DataLines++;
+            // Tokenize the current line
+            string[] row_data = line.ToLower().Split(' ');
+            int i = 0;
+            current_line.Initialize();
+
+            Logger.log_evt(Logger.log_levels.debugging, "Loading line data into storage array...");
+            foreach (int j in schema.field_positions) {
+                current_line[i] = row_data[j];
+                if (CLIConfig.log_level == Logger.log_levels.debugging)
+                    Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], current_line[i]);
+                i++;
+            }
+
+            // Convert the values from string to in now
+            _hour = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.time].Substring(0, 2));
+            _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+            _status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.status]); ;
+            _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]); ;
+            _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
+
+            if (config.dump_log && _timetaken > config.time_taken) {
+                foreach (string s in current_line)
+                    dump_writer.Write("{0} ", s);
+                dump_writer.Write("\n");
+            }
+
+            Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
+            // Global hourly stats
+            results.HOURLY_hit_counter[_hour, 0]++;
+
+            // Analyse mime types
+            Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
+            Analyze_MimeTypes(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
+
+            // Analyze web-application
+            Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part III (web-apps) ...");
+            Analyze_WebApp(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
         }
 
         private int Analyze_MimeTypes(ref string uri) {
@@ -523,7 +519,7 @@ namespace Symantec.CWoC {
         public void DumpResults() {
 
             StringBuilder output = new StringBuilder();
-            output.AppendFormat("\n{{\n\t\"file\" : \"{0}\",\n", filename);
+            output.AppendFormat("{{\n\t\"file\" : \"{0}\",\n", filename);
             output.AppendFormat("\t\"hash\" : \"{0}\",\n", md5_hash);
             output.AppendFormat("\t\"linecount\" : {0},\n", results.DataLines.ToString());
             output.Append("\t\"stats\" : {\n");
