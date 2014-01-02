@@ -12,7 +12,7 @@ namespace Symantec.CWoC {
             string source = "";
             string destination = "";
 
-            // Handle the command line arguments here
+            #region // Handle the command line arguments here
             if (args.Length == 0) {
                 Console.WriteLine(help_message);
                 return -1;
@@ -38,15 +38,21 @@ namespace Symantec.CWoC {
                     }
                 }
             }
+            #endregion
 
             // All is okay, we can proceed now
-
             // First we normalise the paths to ensure they are back slash terminated
             if (!source.EndsWith("\\")) {
                 source = source + "\\";
             }
             if (!destination.EndsWith("\\")) {
                 destination= destination + "\\";
+            }
+
+            // And ensure they are valid
+            if (!Directory.Exists(source)) {
+                Console.WriteLine("The provided input path ({0}) is not valid. Terminating now.", source);
+                return -1;
             }
 
             // Get left data now

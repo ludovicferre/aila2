@@ -24,6 +24,7 @@ in the provided path), as shown in this sample:
     {
             ""sitename"" : ""aila2-web2"",
             ""schema_version"" : 1,
+            ""max_graphs"" : 60,
             ""file_list"" : [
                     ""u_ex140101.json"",
                     ""u_ex131231.json"",
@@ -64,10 +65,15 @@ Additional command line options:
             if (dir_path.Length == 0 || dir_path == string.Empty)
                 dir_path = Directory.GetCurrentDirectory();
 
+            if (!Directory.Exists(dir_path)) {
+                Console.WriteLine("The provide input path ({0}) is not valid. Returning now...", dir_path);
+                return -1;
+            }
+
             string filename = "";
 
             StringBuilder json_data = new StringBuilder();
-            json_data.AppendLine("{\n\t\"sitename\" : \"aila2-web\",\n\t\"schema_version\" : 1,\n\t\"file_list\" : [");
+            json_data.AppendLine("{\n\t\"sitename\" : \"aila2-web\",\n\t\"schema_version\" : 1,\n\t\"max_graphs\": 60,\n\t\"file_list\" : [");
 
             string [] files = Directory.GetFiles(dir_path, "*.json");
 

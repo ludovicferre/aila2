@@ -10,27 +10,37 @@ namespace Symantec.CWoC {
         static int Main(string[] args) {
             if (args.Length == 0) {
                 Console.Write(HELP_MESSAGE);
-                return -1;
+                return (int) errno.E_MISSING_ARGS;
             } else {
                 CLIConfig config = new CLIConfig();
                 int result = config.CheckConfig(args);
 
                 if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
+                    if (!File.Exists(config.file_path)) {
+                        Console.WriteLine("The provide file (\"{0}\") is not accesible. The process will terminate now...", config.file_path);
+                        return (int) errno.E_INVALID_ARGS;
+                    }
                     LogAnalyzer a = new LogAnalyzer(config);
                     a.AnalyzeFile(config.file_path);
-                    return result;
+                    return (int) errno.E_SUCCESS;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
                     Console.Write(HELP_MESSAGE);
-                    return result;
+                    return (int) errno.E_MISSING_ARGS;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.version_request) {
                     // Display versions
                     Console.WriteLine(VERSION_MESSAGE);
-                    return result;
+                    return (int) errno.E_SUCCESS;
                 } else {
                     Console.Write(HELP_MESSAGE);
-                    return result; // Error
+                    return (int) errno.E_INVALID_ARGS;
                 }
             }
+        }
+
+        private enum errno {
+            E_SUCCESS = 0,
+            E_MISSING_ARGS,
+            E_INVALID_ARGS
         }
 
         private static readonly string VERSION_MESSAGE = "aila2 version 1.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";

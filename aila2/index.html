@@ -183,7 +183,17 @@
 			var bg = "";
 			var fc = "";
 
-			for (var i = 0; i < file_count ; i++) {
+			var file_limit;
+			if (typeof result_json.mx_graphs != 'undefined') {
+				file_limit = result_json.max_graphs;
+			} else {
+				file_limit = 0;
+			}
+			if (file_limit == 0) {
+				file_limit = file_count;
+			}
+
+			for (var i = 0; i < file_limit ; i++) {
 				var day = get_dayInt(file_list[i])
 				if (++j == 3) {
 					j = 0;
