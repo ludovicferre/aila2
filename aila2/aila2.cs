@@ -90,7 +90,7 @@ Samples:
             file_path = "";
             dump_log = false;
             progress_bar = false;
-            out_path = "";
+            out_path = ".";
             time_taken = 0;
         }
 
@@ -113,7 +113,6 @@ Samples:
                     status = parse_results.check_error;
                     return 0;
                 }
-
                 if (argv[i] == "-f" || argv[i] == "--file") {
                     if (argc > i + 1) {
                         file_path = argv[++i];
@@ -125,17 +124,10 @@ Samples:
                         return 0;
                     }
                 }
-
                 if (argv[i] == "-V" || argv[i] == "--version") {
                     status = parse_results.version_request;
                     return 0;
                 }
-
-                if (argv[i] == "-p" || argv[i] == "--progress") {
-                    progress_bar = true;
-                    continue;
-                }
-
                 if (argv[i] == "-l" || argv[i] == "--log-level") {
                     try {
                         int l = Convert.ToInt32(argv[i + 1]);
@@ -147,7 +139,6 @@ Samples:
                         return -1;
                     }
                 }
-
                 if (argv[i] == "-t" || argv[i] == "--time-taken") {
                     try {
                         time_taken = Convert.ToInt32(argv[++i]);
@@ -158,7 +149,6 @@ Samples:
                         return -1;
                     }
                 }
-
                 if (argv[i] == "-o" || argv[i] == "--out-path") {
                     out_path = argv[++i].Replace("\"", "");
                 }
@@ -354,17 +344,11 @@ Samples:
             string line = "";
             try {
                 using (StreamReader r = new StreamReader(filepath)){
-                    int i = 0;
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
                         Logger.log_evt(Logger.log_levels.debugging, string.Format("Parsing line below ###\n", line));
                         AnalyzeLine(ref line);
                         results.LineCount++;
-
-                        if (++i > 9999 && config.progress_bar) {
-                            Console.Write("Processed {0} lines...\r", results.LineCount);
-                            i = 0;
-                        }
                     }
                 }
             } catch (Exception e){
@@ -505,7 +489,6 @@ Samples:
         }
 
         private void SaveToFile(string filepath, string data) {
-            Console.WriteLine(filepath);
             using (StreamWriter outfile = new StreamWriter(filepath.ToLower())) {
                 outfile.Write(data);
             }
@@ -525,71 +508,57 @@ Samples:
             output.Append("\t\"stats\" : {\n");
 
             // HOURLY STATS
-
             output.Append("\t\t\"hourly\" : [\n");
             output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Package Info\"],\n");
             for (int j = 0; j < 24; j++) {
-                if (j == 23)
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n\t\t], \n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
-                else
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
             }
+            output.Length = output.Length - 2; // Remove the last ",\n"
+            output.AppendLine("\n\t\t],");
+
 
             // MIME TYPE STATS
-
             output.AppendFormat("\t\t\"mime_type\" : [\n");
             output.AppendFormat("\t\t\t[\"Mime type\", \"Hit #\"],\n");
             for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
-                if (j == results.MIME_TYPE_hit_counter.Length - 1)
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}]\n\t\t], \n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
-                else
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}], \n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+                output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
             }
+            output.Length = output.Length - 2; // Remove the last ",\n"
+            output.AppendLine("\n\t\t],");
 
             // WEB-APPLICATION STATS
-
             output.AppendFormat("\t\t\"web_application\" : [\n");
-            output.AppendFormat("\t\t\t[\"Web-application\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"], \n");
+            output.AppendFormat("\t\t\t[\"Web-application\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
             for (int j = 0; j < constants.atrs_iis_vdir.Length; j++) {
                 float avg = 0;
                 if (results.WEBAPP_Hit_counter[j, 1] > 0) {
-                    // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
                     avg = (float)results.WEBAPP_Hit_counter[j, 1] / (float)results.WEBAPP_Hit_counter[j, 0];
                 }
-                if (j == results.WEBAPP_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}] \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
-                } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}], \n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
-                }
+                output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
             }
-
-            output.AppendFormat("\t\t],\n");
+            output.Length = output.Length - 2; // Remove the last ",\n"
+            output.AppendLine("\n\t\t],");
 
             // AGENT INTERFACE STATS
-
             output.AppendFormat("\t\t\"agent_interface\" : [\n");
-            output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"], \n");
+            output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
             for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
                 float avg = 0;
                 if (results.AGENT_Hit_counter[j, 1] > 0) {
                     // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
                     avg = (float)results.AGENT_Hit_counter[j, 1] / (float)results.AGENT_Hit_counter[j, 0];
                 }
-                if (j == results.AGENT_Hit_counter.Length / 3 - 1) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}]\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
-                } else {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
-                }
+                output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
             }
 
-            output.Append("\t\t]\n\t}\n}\n");
-            // Console.WriteLine(output.ToString());
+            output.Length = output.Length - 2; // Remove the last ",\n"
+            output.AppendLine("\n\t\t]\n\t}\n}");
+
             if (!config.out_path.EndsWith("\\")) {
                 config.out_path = config.out_path + "\\";
             }
+
             SaveToFile(config.out_path + filename.Replace(".log", ".json"), output.ToString());
-
         }
-
     }
 }
