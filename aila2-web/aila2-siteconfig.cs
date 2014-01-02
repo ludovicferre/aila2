@@ -25,8 +25,8 @@ namespace  Symantec.CWoC {
             string filename = "";
             Console.WriteLine("{\n\t\"sitename\" : \"aila2-web\",\n\t\"schema_version\" : 1,\n\t\"file_list\" : [");
             //foreach (string f in Directory.GetFiles(dir_path)) {
-            string [] files = Directory.GetFiles(dir_path);
-            int n = 1;
+            string [] files = Directory.GetFiles(dir_path, "*.json");
+            int n = 0;
             foreach (string f in files) {
                 if (f.ToLower().EndsWith("siteconfig.json")) {
                     n++;
