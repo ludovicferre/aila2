@@ -76,6 +76,7 @@ Additional command line options:
             json_data.AppendLine("{\n\t\"sitename\" : \"aila2-web\",\n\t\"schema_version\" : 1,\n\t\"max_graphs\": 60,\n\t\"file_list\" : [");
 
             string [] files = Directory.GetFiles(dir_path, "*.json");
+            Array.Sort(files);
 
             for (int i = 0; i < files.Length; i++) {
                 if (files[i].EndsWith("siteconfig.json")) {
