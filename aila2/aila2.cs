@@ -99,7 +99,7 @@ Samples:
 
             file_path = "";
             dump_log = false;
-            progress_bar = false;
+            progress_bar = true; ;
             out_path = ".";
             time_taken = 0;
         }
@@ -109,6 +109,15 @@ Samples:
             version_request,        // Display version
             check_error             // Show --help
         };
+
+        public void dump_config() {
+            Console.WriteLine("Command line arguments parsing generaterd the following configuration:");
+            Console.WriteLine("File path:\t\t{0}", file_path);
+            Console.WriteLine("Dump log to file\t{0}", dump_log.ToString());
+            Console.WriteLine("Output directory:\t{0}", out_path);
+            Console.WriteLine("Time-taken threshold:\t{0}", time_taken.ToString());
+            Console.WriteLine("Progress bar:\t\t{0}", progress_bar.ToString());
+        }
 
         public int CheckConfig(string[] argv) {
 
@@ -305,8 +314,8 @@ Samples:
 
         private int _hour;
         private int _timetaken;
-        private int _status;
-        private int _substatus;
+        private long _status;
+        private long _substatus;
         private long _win32status;
 
         private string md5_hash;
@@ -316,7 +325,7 @@ Samples:
 
 
         public LogAnalyzer (CLIConfig c) {
-            current_line = new string [11];
+            current_line = new string [32];
             config = c;
             md5_hash = "";
         }
@@ -344,7 +353,7 @@ Samples:
             md5_hash = sBuilder.ToString();
 
             if (config.dump_log) {
-                dump_writer = new StreamWriter(config.out_path + "\\" + filename.Replace(".log", "_" + config.time_taken.ToString() + ".log"));
+                dump_writer = new StreamWriter(config.file_path.Replace(".log", "_" + config.time_taken.ToString() + ".log"));
                 dump_writer.Write("#Fields: ");
                 foreach (string s in SchemaParser.SupportedFields)
                     dump_writer.Write("{0} ", s);
@@ -354,11 +363,17 @@ Samples:
             string line = "";
             try {
                 using (StreamReader r = new StreamReader(filepath)){
+                    int i = 0;
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
                         Logger.log_evt(Logger.log_levels.debugging, string.Format("Parsing line below ###\n", line));
                         AnalyzeLine(ref line);
                         results.LineCount++;
+
+                        if (++i > 999) {
+                            Console.Write("Processed {0} lines...\r", results.LineCount);
+                            i = 0;
+                        }
                     }
                 }
             } catch (Exception e){
@@ -412,8 +427,8 @@ Samples:
             // Convert the values from string to in now
             _hour = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.time].Substring(0, 2));
             _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
-            _status = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.status]); ;
-            _substatus = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.substatus]); ;
+            _status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.status]); ;
+            _substatus = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.substatus]); ;
             _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
 
             if (config.dump_log && _timetaken > config.time_taken) {
