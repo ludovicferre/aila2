@@ -10,7 +10,9 @@ namespace Symantec.CWoC {
         public static string file_path;
         public static int time_taken;
         public static bool exclude;
+        public static bool include;
         public static string [] exclusion_filter;
+        public static string [] inclusion_filter;
 
         static int Main(string[] args) {
             if (args.Length == 0) {
@@ -20,6 +22,9 @@ namespace Symantec.CWoC {
                 time_taken = 0;
 
                 int i = 0;
+
+                exclude = false;
+                include = false;
 
                 bool current_check = false;
                 int argc = args.Length;
@@ -44,6 +49,10 @@ namespace Symantec.CWoC {
                     if (args[i] == "--exclusion-filter" || args[i] == "-x") {
                         exclude = true;
                         exclusion_filter = args[++i].Split(' ');
+                    }
+                    if (args[i] == "--inclusion-filter" || args[i] == "-i") {
+                        include = true;
+                        inclusion_filter = args[++i].Split(' ');
                     }
                     i++;
                 }
@@ -160,8 +169,16 @@ namespace Symantec.CWoC {
                                 return;
                             }
                         }
-
-                        Console.WriteLine(line);
+                        if (!include) {
+                            Console.WriteLine(line);
+                        }
+                    }
+                    if (include) {
+                        foreach (string s in inclusion_filter) {
+                            if (current_line[(int)SchemaParser.FieldPositions.uristem].Contains(s)) {
+                                Console.WriteLine(line);
+                            }
+                        }
                     }
                 }
             }
