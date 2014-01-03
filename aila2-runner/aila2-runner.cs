@@ -80,24 +80,28 @@ namespace Symantec.CWoC {
         skip_outdir_empty:
             // Now we can process each non-empty entry in in_names
             // but we skip the last file (as it should be today's files)
-            for (int i = 0; i < in_names.Length - 1; i++) {
-                string f = in_names[i];
-                if (f == "") {
-                    continue;
+            for (int i = 0; i < in_names.Length; i++) {
+                try {
+                    string f = in_names[i];
+                    if (f == "") {
+                        continue;
+                    }
+                    Console.WriteLine("Now running aila2.exe -f \"{0}{1}\" -o \"{2}\"...", source, f, destination);
+
+                    Process aila2 = new Process();
+
+                    aila2.StartInfo.FileName = "aila2.exe";
+                    aila2.StartInfo.Arguments = String.Format("-f \"{0}{1}\" -o \"{2}\"", source, f, destination);
+                    aila2.StartInfo.UseShellExecute = false;
+                    aila2.StartInfo.RedirectStandardOutput = true;
+                    aila2.Start();
+
+                    Console.WriteLine(aila2.StandardOutput.ReadToEnd());
+
+                    aila2.WaitForExit();
+                } catch (Exception e) {
+                    Console.WriteLine("An error was encountered launching aila. Here is the error details:", e.Message);
                 }
-                Console.WriteLine("Now running aila2.exe -f \"{0}{1}\" -o \"{2}\"...", source, f, destination);
-
-                Process aila2 = new Process();
-
-                aila2.StartInfo.FileName = "aila2.exe";
-                aila2.StartInfo.Arguments = String.Format("-f \"{0}{1}\" -o \"{2}\"", source, f, destination);
-                aila2.StartInfo.UseShellExecute = false;
-                aila2.StartInfo.RedirectStandardOutput = true;
-                aila2.Start();
-
-                Console.WriteLine(aila2.StandardOutput.ReadToEnd());
-
-                aila2.WaitForExit();
             }
             return 0;
         }
@@ -105,6 +109,7 @@ namespace Symantec.CWoC {
         public static void get_filenames(ref string[] list, ref string[] names) {
             for (int i = 0; i < list.Length; i++) {
                 names[i] = list[i].Substring(list[i].LastIndexOf("\\") + 1);
+                //Console.WriteLine(names[i]);
             }
         }
 
