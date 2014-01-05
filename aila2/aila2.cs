@@ -8,39 +8,34 @@ using System.Text;
 namespace Symantec.CWoC {
     class aila2 {
         static int Main(string[] args) {
-            if (args.Length == 0) {
-                Console.Write(HELP_MESSAGE);
-                return (int)errno.E_MISSING_ARGS;
-            } else {
-                CLIConfig config = new CLIConfig();
-                int result = config.CheckConfig(args);
+            CLIConfig config = new CLIConfig();
+            int result = config.CheckConfig(args);
 
-                if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
-                    LogAnalyzer a = new LogAnalyzer(config);
-                    if (config.stdin) {
-                        while (!a.AnalyzeStdin(Console.ReadLine()))
-                            ;
-                        a.DumpResults();
-                        return 0;
-                    }
+            if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
+                LogAnalyzer a = new LogAnalyzer(config);
+                if (config.stdin) {
+                    while (!a.AnalyzeStdin(Console.ReadLine()))
+                        ;
+                    a.DumpResults();
+                    return 0;
+                }
 
-                    if (!File.Exists(config.file_path)) {
-                        Console.WriteLine("The provide file (\"{0}\") is not accessible. The process will terminate now...", config.file_path);
-                        return (int)errno.E_INVALID_ARGS;
-                    }
-                    a.AnalyzeFile(config.file_path);
-                    return (int)errno.E_SUCCESS;
-                } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
-                    Console.Write(HELP_MESSAGE);
-                    return (int)errno.E_MISSING_ARGS;
-                } else if (result == 0 && config.status == CLIConfig.parse_results.version_request) {
-                    // Display versions
-                    Console.WriteLine(VERSION_MESSAGE);
-                    return (int)errno.E_SUCCESS;
-                } else {
-                    Console.Write(HELP_MESSAGE);
+                if (!File.Exists(config.file_path)) {
+                    Console.WriteLine("The provide file (\"{0}\") is not accessible. The process will terminate now...", config.file_path);
                     return (int)errno.E_INVALID_ARGS;
                 }
+                a.AnalyzeFile(config.file_path);
+                return (int)errno.E_SUCCESS;
+            } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
+                Console.Write(HELP_MESSAGE);
+                return (int)errno.E_MISSING_ARGS;
+            } else if (result == 0 && config.status == CLIConfig.parse_results.version_request) {
+                // Display versions
+                Console.WriteLine(VERSION_MESSAGE);
+                return (int)errno.E_SUCCESS;
+            } else {
+                Console.Write(HELP_MESSAGE);
+                return (int)errno.E_INVALID_ARGS;
             }
         }
 
@@ -127,6 +122,7 @@ Samples:
             int i = 0;
             bool current_check = false;
 
+            int valid_args = 0;
             while (i < argc) {
                 Logger.log_evt(Logger.log_levels.information, string.Format("#Command line Argument {0}= '{1}'", i, argv[i]));
 
@@ -136,12 +132,12 @@ Samples:
                 }
                 if (argv[i] == "--stdin") {
                     stdin = true;
-                    current_check = true;
+                    valid_args++;
                 }
                 if (argv[i] == "-f" || argv[i] == "--file") {
                     if (argc > i + 1) {
                         file_path = argv[++i];
-                        current_check = true;
+                        valid_args++;
                         Logger.log_evt(Logger.log_levels.information, string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
                         continue;
                     } else {
@@ -157,6 +153,7 @@ Samples:
                     try {
                         int l = Convert.ToInt32(argv[i + 1]);
                         log_level = (Logger.log_levels)l;
+                        valid_args += 2;
                         i++;
                         continue;
                     } catch {
@@ -166,13 +163,16 @@ Samples:
                 }
                 if (argv[i] == "-o" || argv[i] == "--out-path") {
                     out_path = argv[++i].Replace("\"", "");
+                    valid_args++;
                 }
                 i++;
             }
 
-            if (current_check == true) {
+            if (argc == valid_args) {
                 status = parse_results.check_success;
                 Logger.log_evt(Logger.log_levels.verbose, "Returning success (0) to caller.");
+                if (file_path == "")
+                    stdin = true;
                 return 0;
             } else {
                 status = parse_results.check_error;
