@@ -25,7 +25,7 @@ namespace Symantec.CWoC {
                     }
 
                     if (!File.Exists(config.file_path)) {
-                        Console.WriteLine("The provide file (\"{0}\") is not accesible. The process will terminate now...", config.file_path);
+                        Console.WriteLine("The provide file (\"{0}\") is not accessible. The process will terminate now...", config.file_path);
                         return (int)errno.E_INVALID_ARGS;
                     }
                     a.AnalyzeFile(config.file_path);
