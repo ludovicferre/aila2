@@ -16,11 +16,18 @@ namespace Symantec.CWoC {
                 int result = config.CheckConfig(args);
 
                 if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
+                    LogAnalyzer a = new LogAnalyzer(config);
+                    if (config.stdin) {
+                        while (!a.AnalyzeStdin(Console.ReadLine()))
+                            ;
+                        a.DumpResults();
+                        return 0;
+                    }
+
                     if (!File.Exists(config.file_path)) {
                         Console.WriteLine("The provide file (\"{0}\") is not accesible. The process will terminate now...", config.file_path);
                         return (int)errno.E_INVALID_ARGS;
                     }
-                    LogAnalyzer a = new LogAnalyzer(config);
                     a.AnalyzeFile(config.file_path);
                     return (int)errno.E_SUCCESS;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
@@ -54,6 +61,9 @@ Parameters:
 
     -f, --file <file_path>  The IIS log file to parse
 
+    --stdin                 The log file data will come from the console input
+                            instead of a file.
+
 Options:
     -l, --log-level <lvl>   Output log data <= to <lvl> to stdout:
             --log-level  1 -> error
@@ -86,11 +96,13 @@ Samples:
         public string file_path;
         public static Logger.log_levels log_level = Logger.log_levels.error;
         public bool progress_bar;
+        public bool stdin;
         public string out_path;
 
         public CLIConfig() {
             status = parse_results.check_error;
 
+            stdin = false;
             file_path = "";
             progress_bar = true; ;
             out_path = ".";
@@ -121,6 +133,10 @@ Samples:
                 if ((argv[i] == "-h") || argv[i] == "--help") {
                     status = parse_results.check_error;
                     return 0;
+                }
+                if (argv[i] == "--stdin") {
+                    stdin = true;
+                    current_check = true;
                 }
                 if (argv[i] == "-f" || argv[i] == "--file") {
                     if (argc > i + 1) {
@@ -297,7 +313,6 @@ Samples:
         private long _status;
         private long _substatus;
         private long _win32status;
-
         private string md5_hash;
         private string filename;
 
@@ -305,14 +320,15 @@ Samples:
             current_line = new string[32];
             config = c;
             md5_hash = "";
-        }
 
-
-        public void AnalyzeFile(string filepath) {
             Timer.Init();
 
             results = new ResultSet();
             schema = new SchemaParser();
+        }
+
+
+        public void AnalyzeFile(string filepath) {
 
             filename = filepath.Substring(filepath.LastIndexOf('\\') + 1);
 
@@ -350,11 +366,22 @@ Samples:
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine(line);
             }
-
+            Timer.Stop();
             DumpResults();
             if (config.progress_bar == true) {
                 Console.WriteLine("We have read {0} lines in {1} milli-seconds.", results.LineCount.ToString(), Timer.duration());
                 Console.WriteLine("The file {0} has {1} schema definition and {2} data lines.", filepath, results.SchemaDef, results.DataLines);
+            }
+        }
+
+        public bool AnalyzeStdin(string line) {
+            if (line != null) {
+                Logger.log_evt(Logger.log_levels.information, string.Format("Parsing line below :: {0}", line));
+                AnalyzeLine(ref line);
+                results.LineCount++;
+                return false;
+            } else {
+                return true;
             }
         }
 
@@ -539,7 +566,11 @@ Samples:
                 config.out_path = config.out_path + "\\";
             }
 
-            SaveToFile(config.out_path + filename.Replace(".log", ".json"), output.ToString());
+            if (config.stdin) {
+                Console.WriteLine(output.ToString());
+            } else {
+                SaveToFile(config.out_path + filename.Replace(".log", ".json"), output.ToString());
+            }
         }
     }
 }
