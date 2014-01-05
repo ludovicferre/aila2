@@ -375,14 +375,13 @@ Samples:
         }
 
         public bool AnalyzeStdin(string line) {
-            if (line != null) {
-                Logger.log_evt(Logger.log_levels.information, string.Format("Parsing line below :: {0}", line));
-                AnalyzeLine(ref line);
-                results.LineCount++;
-                return false;
-            } else {
+            if (line == null) {
                 return true;
             }
+            Logger.log_evt(Logger.log_levels.information, string.Format("Parsing line below :: {0}", line));
+            AnalyzeLine(ref line);
+            results.LineCount++;
+            return false;
         }
 
         private void AnalyzeLine(ref string line) {

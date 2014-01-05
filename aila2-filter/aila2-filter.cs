@@ -105,13 +105,13 @@ Samples:
                     exclude = false;
                     include = false;
 
-                    bool args_valid = false;
+                    int valid_args = 0;
                     int argc = args.Length;
                     while (i < argc) {
                         if (args[i] == "-f" || args[i] == "--file") {
                             if (argc > i + 1) {
                                 file_path = args[++i];
-                                args_valid = true;
+                                valid_args += 2;
                                 continue;
                             } else {
                                 return 0;
@@ -120,6 +120,7 @@ Samples:
                         if (args[i] == "-t" || args[i] == "--time-taken") {
                             try {
                                 time_taken = Convert.ToInt32(args[++i]);
+                                valid_args += 2;
                                 continue;
                             } catch {
                                 return -1;
@@ -128,17 +129,25 @@ Samples:
                         if (args[i] == "--exclusion-filter" || args[i] == "-x") {
                             exclude = true;
                             exclusion_filter = args[++i].Split(' ');
+                            valid_args += 2;
                         }
                         if (args[i] == "--inclusion-filter" || args[i] == "-i") {
                             include = true;
                             inclusion_filter = args[++i].Split(' ');
+                            valid_args += 2;
                         }
                         i++;
                     }
 
-                    if (args_valid == true) {
+                    if (valid_args == argc) {
                         LogAnalyzer a = new LogAnalyzer();
-                        a.AnalyzeFile();
+                        if (file_path != "") {
+                            a.AnalyzeFile();
+                        } else {
+                            while (!a.AnalyzeStdin(Console.ReadLine()))
+                                ;
+                            return 0;
+                        }
                     } else {
                         Console.WriteLine(HELP_MESSAGE);
                         return -1;
@@ -207,11 +216,11 @@ Samples:
 
             public LogAnalyzer() {
                 current_line = new string[32];
+                schema = new SchemaParser();
             }
 
             public void AnalyzeFile() {
                 string filepath = aila2_filter.file_path;
-                schema = new SchemaParser();
 
                 try {
                     using (StreamReader r = new StreamReader(filepath)) {
@@ -221,6 +230,14 @@ Samples:
                     }
                 } catch {
                 }
+            }
+
+            public bool AnalyzeStdin(string line) {
+                if (line == null) {
+                    return true;
+                }
+                AnalyzeLine(line);
+                return false;
             }
 
             private void AnalyzeLine(string line) {
