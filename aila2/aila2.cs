@@ -10,7 +10,7 @@ namespace Symantec.CWoC {
         static int Main(string[] args) {
             if (args.Length == 0) {
                 Console.Write(HELP_MESSAGE);
-                return (int) errno.E_MISSING_ARGS;
+                return (int)errno.E_MISSING_ARGS;
             } else {
                 CLIConfig config = new CLIConfig();
                 int result = config.CheckConfig(args);
@@ -18,21 +18,21 @@ namespace Symantec.CWoC {
                 if (result == 0 && config.status == CLIConfig.parse_results.check_success) {
                     if (!File.Exists(config.file_path)) {
                         Console.WriteLine("The provide file (\"{0}\") is not accesible. The process will terminate now...", config.file_path);
-                        return (int) errno.E_INVALID_ARGS;
+                        return (int)errno.E_INVALID_ARGS;
                     }
                     LogAnalyzer a = new LogAnalyzer(config);
                     a.AnalyzeFile(config.file_path);
-                    return (int) errno.E_SUCCESS;
+                    return (int)errno.E_SUCCESS;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.check_error) {
                     Console.Write(HELP_MESSAGE);
-                    return (int) errno.E_MISSING_ARGS;
+                    return (int)errno.E_MISSING_ARGS;
                 } else if (result == 0 && config.status == CLIConfig.parse_results.version_request) {
                     // Display versions
                     Console.WriteLine(VERSION_MESSAGE);
-                    return (int) errno.E_SUCCESS;
+                    return (int)errno.E_SUCCESS;
                 } else {
                     Console.Write(HELP_MESSAGE);
-                    return (int) errno.E_INVALID_ARGS;
+                    return (int)errno.E_INVALID_ARGS;
                 }
             }
         }
@@ -76,11 +76,11 @@ Samples:
     class Logger {
         public enum log_levels { error = 1, warning = 2, information = 4, verbose = 8, debugging = 16 };
         public static void log_evt(log_levels lvl, string s) {
-            if ((int)CLIConfig.log_level >= (int) lvl)
+            if ((int)CLIConfig.log_level >= (int)lvl)
                 Console.WriteLine(s);
         }
     }
-    
+
     class CLIConfig {
         public parse_results status;
         public string file_path;
@@ -126,7 +126,7 @@ Samples:
                     if (argc > i + 1) {
                         file_path = argv[++i];
                         current_check = true;
-                        Logger.log_evt(Logger.log_levels.information , string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
+                        Logger.log_evt(Logger.log_levels.information, string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
                         continue;
                     } else {
                         status = parse_results.check_error;
@@ -140,7 +140,7 @@ Samples:
                 if (argv[i] == "-l" || argv[i] == "--log-level") {
                     try {
                         int l = Convert.ToInt32(argv[i + 1]);
-                        log_level = (Logger.log_levels) l;
+                        log_level = (Logger.log_levels)l;
                         i++;
                         continue;
                     } catch {
@@ -173,14 +173,14 @@ Samples:
 
         public int[] MIME_TYPE_hit_counter;
 
-        public int [] IIS_STATUS_hit_counter;
-        public int [] IIS_SUB_STATUS_hit_counter;
-        public int [] IIS_WIN32_STATUS_hit_counter;
+        public int[] IIS_STATUS_hit_counter;
+        public int[] IIS_SUB_STATUS_hit_counter;
+        public int[] IIS_WIN32_STATUS_hit_counter;
 
-        public long [,] WEBAPP_Hit_counter;
-        public long [,] AGENT_Hit_counter;
+        public long[,] WEBAPP_Hit_counter;
+        public long[,] AGENT_Hit_counter;
 
-        public int [,] HOURLY_hit_counter;
+        public int[,] HOURLY_hit_counter;
 
         public ResultSet() {
             LineCount = DataLines = SchemaDef = 0;
@@ -195,7 +195,7 @@ Samples:
 
             // We track hit count, total duration and max duration per web-app
             WEBAPP_Hit_counter = new long[constants.atrs_iis_vdir.Length, 3];
-            AGENT_Hit_counter = new  long[constants.atrs_agent_req.Length, 3];
+            AGENT_Hit_counter = new long[constants.atrs_agent_req.Length, 3];
 
         }
     }
@@ -290,7 +290,7 @@ Samples:
         private SchemaParser schema;
         private CLIConfig config;
 
-        private string [] current_line;
+        private string[] current_line;
 
         private int _hour;
         private int _timetaken;
@@ -301,14 +301,14 @@ Samples:
         private string md5_hash;
         private string filename;
 
-        public LogAnalyzer (CLIConfig c) {
-            current_line = new string [32];
+        public LogAnalyzer(CLIConfig c) {
+            current_line = new string[32];
             config = c;
             md5_hash = "";
         }
 
 
-        public void AnalyzeFile (string filepath) {
+        public void AnalyzeFile(string filepath) {
             Timer.Init();
 
             results = new ResultSet();
@@ -317,7 +317,7 @@ Samples:
             filename = filepath.Substring(filepath.LastIndexOf('\\') + 1);
 
             Logger.log_evt(Logger.log_levels.information, string.Format("Generating file md5 hash..."));
-            byte [] hash;
+            byte[] hash;
             using (MD5 md5 = MD5.Create()) {
                 using (FileStream stream = File.OpenRead(filepath)) {
                     hash = md5.ComputeHash(stream);
@@ -331,7 +331,7 @@ Samples:
 
             string line = "";
             try {
-                using (StreamReader r = new StreamReader(filepath)){
+                using (StreamReader r = new StreamReader(filepath)) {
                     int i = 0;
                     while (r.Peek() >= 0) {
                         line = r.ReadLine();
@@ -345,7 +345,7 @@ Samples:
                         }
                     }
                 }
-            } catch (Exception e){
+            } catch (Exception e) {
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine(line);
@@ -418,8 +418,8 @@ Samples:
                 }
                 i++;
             }
-            results.MIME_TYPE_hit_counter[i-1]++;
-            return i -1;
+            results.MIME_TYPE_hit_counter[i - 1]++;
+            return i - 1;
         }
 
         private int Analyze_WebApp(ref string uri) {
@@ -458,12 +458,12 @@ Samples:
                     break;
                 }
             }
-            if (i == (int)constants.ATRS_AGENT_REQ._post_event_asp || i == (int) constants.ATRS_AGENT_REQ._post_event_aspx) {
+            if (i == (int)constants.ATRS_AGENT_REQ._post_event_asp || i == (int)constants.ATRS_AGENT_REQ._post_event_aspx) {
                 // Add to hourly accounting
                 results.HOURLY_hit_counter[_hour, 1]++;
-            } else if (i == (int) constants.ATRS_AGENT_REQ._get_pkg_info) {
+            } else if (i == (int)constants.ATRS_AGENT_REQ._get_pkg_info) {
                 results.HOURLY_hit_counter[_hour, 2]++;
-            } else if (i == (int) constants.ATRS_AGENT_REQ._get_client_policy){
+            } else if (i == (int)constants.ATRS_AGENT_REQ._get_client_policy) {
                 results.HOURLY_hit_counter[_hour, 3]++;
             }
             return 0;
