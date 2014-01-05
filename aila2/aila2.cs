@@ -267,7 +267,7 @@ Samples:
         }
 
         public int ParseSchemaString(string schema) {
-            schema = schema.Substring(9).TrimEnd();
+            schema = schema.Substring(9).TrimEnd(); // Remove the '#Fields: ' head
 
             if (schema != current_schema_string) {
                 current_schema_string = schema;
@@ -386,12 +386,13 @@ Samples:
         }
 
         private void AnalyzeLine(ref string line) {
+            line = line.ToLower();
             Logger.log_evt(Logger.log_levels.debugging, "Starting detailed line analysis...");
             if (line.StartsWith("#")) {
                 Logger.log_evt(Logger.log_levels.debugging, "We have a commented line");
-                if (line.StartsWith("#Fields:")) {
+                if (line.StartsWith("#fields:")) {
                     if (schema.current_schema_string != line) {
-                        results.SchemaDef += schema.ParseSchemaString(line.ToLower());
+                        results.SchemaDef += schema.ParseSchemaString(line);
                     }
                 }
                 return;
