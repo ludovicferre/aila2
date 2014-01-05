@@ -62,14 +62,10 @@ Options:
             --log-level  8 -> verbose
             --log-level 16 -> debug
     -o, --out-path <path>   The location where the result file will be created.
-    -t, --time-taken <t>    Where t is a value in milli-second. When the option
-                            is used a new log file will be generated inside the
-                            input directory with all requests that took longer
-                            than t to complete.
 
 Samples:
     aila2 -f iis.log
-    aila2 --file iis.log  -t 5000
+    aila2 --file iis.log -l 4
     aila2 -f iis.log -o c:\inetpub\wwwroot\aila2\
 
 {CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc
@@ -89,19 +85,15 @@ Samples:
         public parse_results status;
         public string file_path;
         public static Logger.log_levels log_level = Logger.log_levels.error;
-        public bool dump_log;
         public bool progress_bar;
         public string out_path;
-        public int time_taken;
 
         public CLIConfig() {
             status = parse_results.check_error;
 
             file_path = "";
-            dump_log = false;
             progress_bar = true; ;
             out_path = ".";
-            time_taken = 0;
         }
 
         public enum parse_results {
@@ -113,9 +105,7 @@ Samples:
         public void dump_config() {
             Console.WriteLine("Command line arguments parsing generaterd the following configuration:");
             Console.WriteLine("File path:\t\t{0}", file_path);
-            Console.WriteLine("Dump log to file\t{0}", dump_log.ToString());
             Console.WriteLine("Output directory:\t{0}", out_path);
-            Console.WriteLine("Time-taken threshold:\t{0}", time_taken.ToString());
             Console.WriteLine("Progress bar:\t\t{0}", progress_bar.ToString());
         }
 
@@ -152,16 +142,6 @@ Samples:
                         int l = Convert.ToInt32(argv[i + 1]);
                         log_level = (Logger.log_levels) l;
                         i++;
-                        continue;
-                    } catch {
-                        status = parse_results.check_error;
-                        return -1;
-                    }
-                }
-                if (argv[i] == "-t" || argv[i] == "--time-taken") {
-                    try {
-                        time_taken = Convert.ToInt32(argv[++i]);
-                        dump_log = true;
                         continue;
                     } catch {
                         status = parse_results.check_error;
@@ -321,9 +301,6 @@ Samples:
         private string md5_hash;
         private string filename;
 
-        private StreamWriter dump_writer;
-
-
         public LogAnalyzer (CLIConfig c) {
             current_line = new string [32];
             config = c;
@@ -352,14 +329,6 @@ Samples:
                 sBuilder.Append(hash[i].ToString("x2"));
             md5_hash = sBuilder.ToString();
 
-            if (config.dump_log) {
-                dump_writer = new StreamWriter(config.file_path.Replace(".log", "_" + config.time_taken.ToString() + ".log"));
-                dump_writer.Write("#Fields: ");
-                foreach (string s in SchemaParser.SupportedFields)
-                    dump_writer.Write("{0} ", s);
-                dump_writer.Write("\n");
-            }
-
             string line = "";
             try {
                 using (StreamReader r = new StreamReader(filepath)){
@@ -380,13 +349,6 @@ Samples:
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine(line);
-            }
-            // Close the dump writer now...
-            try {
-                dump_writer.Flush();
-                dump_writer.Close();
-                dump_writer.Dispose();
-            } catch {
             }
 
             DumpResults();
@@ -430,12 +392,6 @@ Samples:
             _status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.status]); ;
             _substatus = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.substatus]); ;
             _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
-
-            if (config.dump_log && _timetaken > config.time_taken) {
-                foreach (string s in current_line)
-                    dump_writer.Write("{0} ", s);
-                dump_writer.Write("\n");
-            }
 
             Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
             // Global hourly stats
