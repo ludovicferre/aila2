@@ -19,7 +19,8 @@ Usage: aila2-filter [options]
 
 Options:
 
-    -f, --file          The path to the IIS log file you want to filter
+    -f, --file          The path to the IIS log file you want to filter. This
+    			field is optional.
 
     -t, --time-taken n  Filter on request that are taking long n milli-
                         seconds. This only works if the IIS schema contains
@@ -41,11 +42,18 @@ Options:
                         Each entry will be checked against the uri-stem field
                         and matching entries will not be printed out.
 
-Note! The 3 filter option are cascaded, so the filtering is done as shown here:
+If no file is specified the input will be read from the console (stdin).
 
-    Level 1: time-taken entries are matched. If nothing is specified by the user
-    we use 0 as base. Entries greater or equal to the specified time-taken are
-    passed on to the next filtering level.
+If no arguments are specified this help message will be shown, as we expect at
+least one of the 3 filters to be set (if you need to print a file to stdout you
+can use type).
+
+Note! The 3 filter are cascaded, which has some implication on what data will 
+be displayed. Here is a detail explantion of the proceeedings:
+
+    Level 1: time-taken entries are matched. If nothing is specified by the 
+    user we use 0 as base. Entries greater or equal to the specified time-taken 
+    are passed on to the next filtering level.
 
     Level 2: exclusion entries are matched. Any match from the exclusion filter
     will not be printed out or passed on to the next level. If no exclusion 
@@ -74,7 +82,7 @@ Samples:
 
     Output all requests outside of the NS/Agent uri that took longer than .5
     seconds to complete and write the output to file u_ex131231_5000ms.log.
-
+	
 ";
 
         static int Main(string[] args) {
