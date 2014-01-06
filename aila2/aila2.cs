@@ -135,7 +135,7 @@ Samples:
                     if (argv[i] == "-f" || argv[i] == "--file") {
                         if (argc > i + 1) {
                             file_path = argv[++i];
-                            valid_args++;
+                            valid_args += 2;
                             Logger.log_evt(log_levels.information, string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
                             continue;
                         } else {
