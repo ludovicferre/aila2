@@ -273,6 +273,9 @@ Samples:
 
                 _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
                 if (_timetaken >= aila2_filter.time_taken) {
+                    if (!include && !exclude) {
+                        Console.WriteLine(line);
+                    }
                     if (exclude) {
                         foreach (string s in exclusion_filter) {
                             if (current_line[(int)FieldPositions.uristem].Contains(s)) {
