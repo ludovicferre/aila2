@@ -241,25 +241,17 @@ Samples:
     class SchemaParser {
         public string current_schema_string;
         public List<int> field_positions;
+        public bool ready;
 
         public SchemaParser() {
             current_schema_string = "";
-            // Assume a mx 30 distinct fields are select, safe?
+            // Assume a mqx 30 distinct fields are select, safe enough?
             field_positions = new List<int>();
+            ready = false;
         }
 
         public static readonly string[] SupportedFields = new string[] {
-            "date",
-            "time",
-            "cs-method",
-            "cs-uri-stem",
-            "cs-uri-query",
-            "cs-username",
-            "c-ip",
-            "sc-status",
-            "sc-substatus",
-            "sc-win32-status",
-            "time-taken"
+            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
         };
 
         public enum FieldPositions {
@@ -271,6 +263,7 @@ Samples:
 
             if (schema != current_schema_string) {
                 current_schema_string = schema;
+                field_positions.Clear();
 
                 Logger.log_evt(Logger.log_levels.verbose, "Row Schema = " + current_schema_string);
 
@@ -293,6 +286,9 @@ Samples:
                     Logger.log_evt(Logger.log_levels.debugging, String.Format("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]));
                     j++;
                 }
+
+                if (field_positions.Count > 0)
+                    ready = true;
                 return 1;
             } else {
                 return 0;
@@ -379,7 +375,13 @@ Samples:
                 return true;
             }
             Logger.log_evt(Logger.log_levels.information, string.Format("Parsing line below :: {0}", line));
-            AnalyzeLine(ref line);
+            try {
+                AnalyzeLine(ref line);
+            } catch (Exception e){
+                Console.Error.WriteLine("Error! Could not parse the following line:\n{0}.", line);
+                Console.Error.WriteLine(e.Message);
+                return true; // Terminate process on input error
+            }
             results.LineCount++;
             return false;
         }
@@ -397,6 +399,8 @@ Samples:
                 return;
             }
 
+            if (!schema.ready || line == "")
+                return;
             Logger.log_evt(Logger.log_levels.debugging, "The current line contains data...");
 
             results.DataLines++;

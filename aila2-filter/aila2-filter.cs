@@ -180,24 +180,27 @@ Samples:
 
                 string[] fields = schema.Split(' ');
                 int l = 0;
+                field_positions.Clear();
                 foreach (string f in fields) {
                     int i = 0;
                     foreach (string s in SupportedFields) {
                         if (s == f) {
                             field_positions.Add(l);
-                            // Console.WriteLine("We have a match for string {0} at position {1}.", s, l.ToString());
+                            // Console.Error.WriteLine("We have a match for string {0} at position {1}.", s, l.ToString());
                             break;
                         }
                         i++;
                     }
                     l++;
                 }
-/*              int j = 0;
+                /*
+                int j = 0;
                 foreach (int k in field_positions) {
-                    Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
+                    Console.Error.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
                     j++;
                 }
-*/              if (field_positions.Count > 0)
+                */
+                if (field_positions.Count > 0)
                     ready = true;
             }
         }
@@ -214,7 +217,6 @@ Samples:
 
             public void AnalyzeFile() {
                 string filepath = aila2_filter.file_path;
-
                 try {
                     using (StreamReader r = new StreamReader(filepath)) {
                         while (r.Peek() >= 0) {
@@ -229,7 +231,13 @@ Samples:
                 if (line == null) {
                     return true;
                 }
-                AnalyzeLine(line);
+                try {
+                    AnalyzeLine(line);
+                } catch (Exception e) {
+                    Console.Error.WriteLine(current_line);
+                    Console.Error.WriteLine(e.Message);
+                    return true; //Terminate process on input error
+                }
                 return false;
             }
 
@@ -243,9 +251,9 @@ Samples:
                     return;
                 }
 
-                // Tokenize the current line
                 if (!schema.ready)
                     return;
+                // Tokenize the current line
                 string[] row_data = line.ToLower().Split(' ');
                 int i = 0;
                 current_line.Initialize();
