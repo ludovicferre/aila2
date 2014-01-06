@@ -13,7 +13,9 @@ namespace Symantec.CWoC {
         public static bool include;
         public static string[] exclusion_filter;
         public static string[] inclusion_filter;
+        public static bool short_output;
 
+        #region public static string HELP_MESSAGE
         public static string HELP_MESSAGE = @"
 Usage: aila2-filter [options]
 
@@ -84,12 +86,20 @@ Samples:
     seconds to complete and write the output to file u_ex131231_5000ms.log.
 	
 ";
+        #endregion
 
         static int Main(string[] args) {
             if (args.Length == 0) {
                 Console.WriteLine(HELP_MESSAGE);
                 return -1;
             } else {
+                // Init the generic args to safe values;
+                file_path = "";
+                time_taken = 0;
+                exclude = false;
+                include = false;
+                short_output = false;
+
                 if (args.Length == 1) {
                     #region // Handle case when 1 agrument alone is provided
                     if (args[0] == "-v" || args[0] == "--version") {
@@ -124,6 +134,10 @@ Samples:
                             } else {
                                 return 0;
                             }
+                        }
+                        if (args[i] == "-s" || args[i] == "--short") {
+                            short_output = true;
+                            valid_args++;
                         }
                         if (args[i] == "-t" || args[i] == "--time-taken") {
                             try {
@@ -214,7 +228,7 @@ Samples:
         }
 
         class LogAnalyzer {
-            private SchemaParser schema;
+            private static SchemaParser schema;
             private string[] current_line;
             private int _timetaken;
 
@@ -231,7 +245,8 @@ Samples:
                             AnalyzeLine(r.ReadLine());
                         }
                     }
-                } catch {
+                } catch (Exception e){
+                    Console.Error.WriteLine(e.Message);
                 }
             }
 
@@ -254,13 +269,16 @@ Samples:
                 if (line.StartsWith("#")) {
                     if (line.StartsWith("#fields:")) {
                         schema.ParseSchemaString(line);
+                        print(ref line);
+                    } else {
+                        print(ref line);
                     }
-                    Console.WriteLine(line);
                     return;
                 }
 
                 if (!schema.ready)
                     return;
+
                 // Tokenize the current line
                 string[] row_data = line.ToLower().Split(' ');
                 int i = 0;
@@ -274,7 +292,11 @@ Samples:
                 _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
                 if (_timetaken >= aila2_filter.time_taken) {
                     if (!include && !exclude) {
-                        Console.WriteLine(line);
+                        if (short_output) {
+                            print(ref row_data);
+                        } else {
+                            print(ref line);
+                        }
                     }
                     if (exclude) {
                         foreach (string s in exclusion_filter) {
@@ -283,17 +305,45 @@ Samples:
                             }
                         }
                         if (!include) {
-                            Console.WriteLine(line);
+                            if (short_output) {
+                                print(ref row_data);
+                            } else {
+                                print(ref line);
+                            }
                         }
                     }
                     if (include) {
                         foreach (string s in inclusion_filter) {
                             if (current_line[(int)FieldPositions.uristem].Contains(s)) {
-                                Console.WriteLine(line);
+                                if (short_output) {
+                                    print(ref row_data);
+                                } else {
+                                    print(ref line);
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            public static void print(ref string line) {
+                Console.WriteLine(line);
+            }
+
+            public static void print(ref string[] data) {
+                foreach (int j in schema.field_positions) {
+                    Console.Write(data[j] + ' ');
+                }
+                Console.WriteLine();
+            }
+
+            public static void print_schema() {
+                Console.Write("#Fields: ");
+                int j = 0;
+                foreach (int k in schema.field_positions) {
+                    Console.Write(SupportedFields[j++] + ' ');
+                }
+                Console.WriteLine();
             }
         }
     }
