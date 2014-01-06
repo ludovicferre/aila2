@@ -192,12 +192,12 @@ Samples:
                     }
                     l++;
                 }
-                int j = 0;
+/*              int j = 0;
                 foreach (int k in field_positions) {
-                    // Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
+                    Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
                     j++;
                 }
-                if (field_positions.Count > 0)
+*/              if (field_positions.Count > 0)
                     ready = true;
             }
         }
