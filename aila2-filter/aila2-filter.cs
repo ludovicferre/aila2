@@ -11,8 +11,8 @@ namespace Symantec.CWoC {
         public static int time_taken;
         public static bool exclude;
         public static bool include;
-        public static string [] exclusion_filter;
-        public static string [] inclusion_filter;
+        public static string[] exclusion_filter;
+        public static string[] inclusion_filter;
 
         public static string HELP_MESSAGE = @"
 Usage: aila2-filter [options]
@@ -160,24 +160,16 @@ Samples:
 
         class SchemaParser {
             public List<int> field_positions;
+            public bool ready;
 
             public SchemaParser() {
                 field_positions = new List<int>();
+                ready = false;
             }
 
             public static readonly string[] SupportedFields = new string[] {
-            "date",
-            "time",
-            "cs-method",
-            "cs-uri-stem",
-            "cs-uri-query",
-            "cs-username",
-            "c-ip",
-            "sc-status",
-            "sc-substatus",
-            "sc-win32-status",
-            "time-taken"
-        };
+                "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
+            };
 
             public enum FieldPositions {
                 date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
@@ -186,27 +178,28 @@ Samples:
             public void ParseSchemaString(string schema) {
                 schema = schema.Substring(9).TrimEnd();
 
-                    string[] fields = schema.Split(' ');
-                    int l = 0;
-                    foreach (string f in fields) {
-                        int i = 0;
-                        foreach (string s in SupportedFields) {
-                            if (s == f) {
-                                field_positions.Add(l);
-                                // Console.WriteLine("We have a match for string {0} at position {1}.", s, l.ToString());
-                                break;
-                            }
-                            i++;
+                string[] fields = schema.Split(' ');
+                int l = 0;
+                foreach (string f in fields) {
+                    int i = 0;
+                    foreach (string s in SupportedFields) {
+                        if (s == f) {
+                            field_positions.Add(l);
+                            // Console.WriteLine("We have a match for string {0} at position {1}.", s, l.ToString());
+                            break;
                         }
-                        l++;
+                        i++;
                     }
-                    int j = 0;
-                    foreach (int k in field_positions) {
-                        // Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
-                        j++;
-                    }
+                    l++;
+                }
+                int j = 0;
+                foreach (int k in field_positions) {
+                    // Console.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
+                    j++;
+                }
+                if (field_positions.Count > 0)
+                    ready = true;
             }
-
         }
 
         class LogAnalyzer {
@@ -251,6 +244,8 @@ Samples:
                 }
 
                 // Tokenize the current line
+                if (!schema.ready)
+                    return;
                 string[] row_data = line.ToLower().Split(' ');
                 int i = 0;
                 current_line.Initialize();
