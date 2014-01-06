@@ -158,6 +158,14 @@ Samples:
             }
         }
 
+        public static readonly string[] SupportedFields = new string[] {
+                "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
+        };
+
+        public enum FieldPositions {
+            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
+        }
+
         class SchemaParser {
             public List<int> field_positions;
             public bool ready;
@@ -165,14 +173,6 @@ Samples:
             public SchemaParser() {
                 field_positions = new List<int>();
                 ready = false;
-            }
-
-            public static readonly string[] SupportedFields = new string[] {
-                "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
-            };
-
-            public enum FieldPositions {
-                date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
             }
 
             public void ParseSchemaString(string schema) {
@@ -263,11 +263,11 @@ Samples:
                     i++;
                 }
 
-                _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
                 if (_timetaken >= aila2_filter.time_taken) {
                     if (exclude) {
                         foreach (string s in exclusion_filter) {
-                            if (current_line[(int)SchemaParser.FieldPositions.uristem].Contains(s)) {
+                            if (current_line[(int)FieldPositions.uristem].Contains(s)) {
                                 return;
                             }
                         }
@@ -277,7 +277,7 @@ Samples:
                     }
                     if (include) {
                         foreach (string s in inclusion_filter) {
-                            if (current_line[(int)SchemaParser.FieldPositions.uristem].Contains(s)) {
+                            if (current_line[(int)FieldPositions.uristem].Contains(s)) {
                                 Console.WriteLine(line);
                             }
                         }

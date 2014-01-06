@@ -76,8 +76,9 @@ Samples:
 {CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc
 ";
 
+        public enum log_levels { error = 1, warning = 2, information = 4, verbose = 8, debugging = 16 };
+
         class Logger {
-            public enum log_levels { error = 1, warning = 2, information = 4, verbose = 8, debugging = 16 };
             public static void log_evt(log_levels lvl, string s) {
                 if ((int)CLIConfig.log_level >= (int)lvl)
                     Console.WriteLine(s);
@@ -87,7 +88,7 @@ Samples:
         class CLIConfig {
             public parse_results status;
             public string file_path;
-            public static Logger.log_levels log_level = Logger.log_levels.error;
+            public static log_levels log_level = log_levels.error;
             public bool progress_bar;
             public bool stdin;
             public string out_path;
@@ -121,7 +122,7 @@ Samples:
 
                 int valid_args = 0;
                 while (i < argc) {
-                    Logger.log_evt(Logger.log_levels.information, string.Format("#Command line Argument {0}= '{1}'", i, argv[i]));
+                    Logger.log_evt(log_levels.information, string.Format("#Command line Argument {0}= '{1}'", i, argv[i]));
 
                     if ((argv[i] == "-h") || argv[i] == "--help") {
                         status = parse_results.check_error;
@@ -135,7 +136,7 @@ Samples:
                         if (argc > i + 1) {
                             file_path = argv[++i];
                             valid_args++;
-                            Logger.log_evt(Logger.log_levels.information, string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
+                            Logger.log_evt(log_levels.information, string.Format("File command is called with file path (to be checked) '{0}'", argv[i]));
                             continue;
                         } else {
                             status = parse_results.check_error;
@@ -149,7 +150,7 @@ Samples:
                     if (argv[i] == "-l" || argv[i] == "--log-level") {
                         try {
                             int l = Convert.ToInt32(argv[i + 1]);
-                            log_level = (Logger.log_levels)l;
+                            log_level = (log_levels)l;
                             valid_args += 2;
                             i++;
                             continue;
@@ -167,13 +168,13 @@ Samples:
 
                 if (argc == valid_args) {
                     status = parse_results.check_success;
-                    Logger.log_evt(Logger.log_levels.verbose, "Returning success (0) to caller.");
+                    Logger.log_evt(log_levels.verbose, "Returning success (0) to caller.");
                     if (file_path == "")
                         stdin = true;
                     return 0;
                 } else {
                     status = parse_results.check_error;
-                    Logger.log_evt(Logger.log_levels.warning, "Returning failure (-1) to caller.");
+                    Logger.log_evt(log_levels.warning, "Returning failure (-1) to caller.");
                     return -1;
                 }
             }
@@ -235,6 +236,14 @@ Samples:
             }
         }
 
+        public static readonly string[] SupportedFields = new string[] {
+            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
+        };
+
+        public enum FieldPositions {
+            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
+        }
+
         class SchemaParser {
             public string current_schema_string;
             public List<int> field_positions;
@@ -242,17 +251,9 @@ Samples:
 
             public SchemaParser() {
                 current_schema_string = "";
-                // Assume a mqx 30 distinct fields are select, safe enough?
+                // Assume a max 30 distinct fields are select, safe enough?
                 field_positions = new List<int>();
                 ready = false;
-            }
-
-            public static readonly string[] SupportedFields = new string[] {
-            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
-        };
-
-            public enum FieldPositions {
-                date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
             }
 
             public int ParseSchemaString(string schema) {
@@ -262,7 +263,7 @@ Samples:
                     current_schema_string = schema;
                     field_positions.Clear();
 
-                    Logger.log_evt(Logger.log_levels.verbose, "Row Schema = " + current_schema_string);
+                    Logger.log_evt(log_levels.verbose, "Row Schema = " + current_schema_string);
 
                     string[] fields = schema.Split(' ');
                     int l = 0;
@@ -271,7 +272,7 @@ Samples:
                         foreach (string s in SupportedFields) {
                             if (s == f) {
                                 field_positions.Add(l);
-                                Logger.log_evt(Logger.log_levels.debugging, string.Format("We have a match for string {0} at position {1}.", s, l.ToString()));
+                                Logger.log_evt(log_levels.debugging, string.Format("We have a match for string {0} at position {1}.", s, l.ToString()));
                                 break;
                             }
                             i++;
@@ -280,7 +281,7 @@ Samples:
                     }
                     int j = 0;
                     foreach (int k in field_positions) {
-                        Logger.log_evt(Logger.log_levels.debugging, String.Format("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]));
+                        Logger.log_evt(log_levels.debugging, String.Format("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]));
                         j++;
                     }
 
@@ -325,7 +326,7 @@ Samples:
 
                 filename = filepath.Substring(filepath.LastIndexOf('\\') + 1);
 
-                Logger.log_evt(Logger.log_levels.information, string.Format("Generating file md5 hash..."));
+                Logger.log_evt(log_levels.information, string.Format("Generating file md5 hash..."));
                 byte[] hash;
                 using (MD5 md5 = MD5.Create()) {
                     using (FileStream stream = File.OpenRead(filepath)) {
@@ -344,7 +345,7 @@ Samples:
                         int i = 0;
                         while (r.Peek() >= 0) {
                             line = r.ReadLine();
-                            Logger.log_evt(Logger.log_levels.debugging, string.Format("Parsing line below ###\n", line));
+                            Logger.log_evt(log_levels.debugging, string.Format("Parsing line below ###\n", line));
                             AnalyzeLine(ref line);
                             results.LineCount++;
 
@@ -371,7 +372,7 @@ Samples:
                 if (line == null) {
                     return true;
                 }
-                Logger.log_evt(Logger.log_levels.information, string.Format("Parsing line below :: {0}", line));
+                Logger.log_evt(log_levels.information, string.Format("Parsing line below :: {0}", line));
                 try {
                     AnalyzeLine(ref line);
                 } catch (Exception e) {
@@ -385,9 +386,9 @@ Samples:
 
             private void AnalyzeLine(ref string line) {
                 line = line.ToLower();
-                Logger.log_evt(Logger.log_levels.debugging, "Starting detailed line analysis...");
+                Logger.log_evt(log_levels.debugging, "Starting detailed line analysis...");
                 if (line.StartsWith("#")) {
-                    Logger.log_evt(Logger.log_levels.debugging, "We have a commented line");
+                    Logger.log_evt(log_levels.debugging, "We have a commented line");
                     if (line.StartsWith("#fields:")) {
                         if (schema.current_schema_string != line) {
                             results.SchemaDef += schema.ParseSchemaString(line);
@@ -398,7 +399,7 @@ Samples:
 
                 if (!schema.ready || line == "")
                     return;
-                Logger.log_evt(Logger.log_levels.debugging, "The current line contains data...");
+                Logger.log_evt(log_levels.debugging, "The current line contains data...");
 
                 results.DataLines++;
                 // Tokenize the current line
@@ -406,42 +407,42 @@ Samples:
                 int i = 0;
                 current_line.Initialize();
 
-                Logger.log_evt(Logger.log_levels.debugging, "Loading line data into storage array...");
+                Logger.log_evt(log_levels.debugging, "Loading line data into storage array...");
                 foreach (int j in schema.field_positions) {
                     current_line[i] = row_data[j];
-                    if (CLIConfig.log_level == Logger.log_levels.debugging)
-                        Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SchemaParser.SupportedFields[i], current_line[i]);
+                    if (CLIConfig.log_level == log_levels.debugging)
+                        Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SupportedFields[i], current_line[i]);
                     i++;
                 }
 
                 // Convert the values from string to in now
-                _hour = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.time].Substring(0, 2));
-                _timetaken = Convert.ToInt32(current_line[(int)SchemaParser.FieldPositions.timetaken]);
-                _status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.status]); ;
-                _substatus = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.substatus]); ;
-                _win32status = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.win32status]); ;
+                _hour = Convert.ToInt32(current_line[(int)FieldPositions.time].Substring(0, 2));
+                _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
+                _status = Convert.ToInt64(current_line[(int)FieldPositions.status]); ;
+                _substatus = Convert.ToInt64(current_line[(int)FieldPositions.substatus]); ;
+                _win32status = Convert.ToInt64(current_line[(int)FieldPositions.win32status]); ;
 
-                Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part I (hourly hits) ...");
+                Logger.log_evt(log_levels.debugging, "Running analysis - part I (hourly hits) ...");
                 // Global hourly stats
                 results.HOURLY_hit_counter[_hour, 0]++;
 
                 // Analyse mime types
-                Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part II (mime type) ...");
-                Analyze_MimeTypes(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
+                Logger.log_evt(log_levels.debugging, "Running analysis - part II (mime type) ...");
+                Analyze_MimeTypes(ref current_line[(int)FieldPositions.uristem]);
 
                 // Analyze web-application
-                Logger.log_evt(Logger.log_levels.debugging, "Running analysis - part III (web-apps) ...");
-                Analyze_WebApp(ref current_line[(int)SchemaParser.FieldPositions.uristem]);
+                Logger.log_evt(log_levels.debugging, "Running analysis - part III (web-apps) ...");
+                Analyze_WebApp(ref current_line[(int)FieldPositions.uristem]);
             }
 
             private int Analyze_MimeTypes(ref string uri) {
                 int i = 0;
                 foreach (string type in constants.http_mime_type) {
-                    Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking mime-types {0}", type));
+                    Logger.log_evt(log_levels.debugging, string.Format("Checking mime-types {0}", type));
                     if (uri.EndsWith(type)) {
                         // Increment mime-type counter
                         results.MIME_TYPE_hit_counter[i]++;
-                        Logger.log_evt(Logger.log_levels.debugging, string.Format("Current request mime type is {0}.", type));
+                        Logger.log_evt(log_levels.debugging, string.Format("Current request mime type is {0}.", type));
                         return i;
                     }
                     i++;
@@ -453,9 +454,9 @@ Samples:
             private int Analyze_WebApp(ref string uri) {
                 int i = 0;
                 foreach (string app in constants.atrs_iis_vdir) {
-                    Logger.log_evt(Logger.log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
+                    Logger.log_evt(log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
                     if (uri.StartsWith(app)) {
-                        Logger.log_evt(Logger.log_levels.debugging, string.Format("Current request web-app is {0}.", app));
+                        Logger.log_evt(log_levels.debugging, string.Format("Current request web-app is {0}.", app));
                         break;
                     }
                     i++;
@@ -468,9 +469,9 @@ Samples:
                     i = constants.atrs_iis_vdir.Length - 1;
                 }
                 results.WEBAPP_Hit_counter[i, 0]++;
-                results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
-                if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]))
-                    results.WEBAPP_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
+                    results.WEBAPP_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
                 return 0;
             }
 
@@ -480,9 +481,9 @@ Samples:
                     string page_name = constants.atrs_agent_req[i];
                     if (uri.EndsWith(page_name)) {
                         results.AGENT_Hit_counter[i, 0]++;
-                        results.AGENT_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
-                        if (results.AGENT_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]))
-                            results.AGENT_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)SchemaParser.FieldPositions.timetaken]);
+                        results.AGENT_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        if (results.AGENT_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
+                            results.AGENT_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
                         break;
                     }
                 }
