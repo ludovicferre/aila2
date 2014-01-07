@@ -47,6 +47,7 @@ namespace Symantec.CWoC {
 
         private static readonly string VERSION_MESSAGE = "aila2 version 1.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
 
+        #region static readonly string HELP_MESSAGE
         private static readonly string HELP_MESSAGE = @"
 Usage : aila2 [Parameter] [Option(s)]
 
@@ -75,6 +76,7 @@ Samples:
 
 {CWoc} info: http://www.symantec.com/connect/search/apachesolr_search/cwoc
 ";
+        #endregion
 
         public enum log_levels { error = 1, warning = 2, information = 4, verbose = 8, debugging = 16 };
 
@@ -161,7 +163,7 @@ Samples:
                     }
                     if (argv[i] == "-o" || argv[i] == "--out-path") {
                         out_path = argv[++i].Replace("\"", "");
-                        valid_args++;
+                        valid_args += 2;
                     }
                     i++;
                 }
@@ -327,17 +329,26 @@ Samples:
                 filename = filepath.Substring(filepath.LastIndexOf('\\') + 1);
 
                 Logger.log_evt(log_levels.information, string.Format("Generating file md5 hash..."));
-                byte[] hash;
-                using (MD5 md5 = MD5.Create()) {
-                    using (FileStream stream = File.OpenRead(filepath)) {
-                        hash = md5.ComputeHash(stream);
+                try {
+                    byte[] hash;
+                    using (MD5 md5 = MD5.Create()) {
+                        using (FileStream stream = File.OpenRead(filepath)) {
+                            hash = md5.ComputeHash(stream);
+                        }
                     }
-                }
 
-                StringBuilder sBuilder = new StringBuilder();
-                for (int i = 0; i < hash.Length; i++)
-                    sBuilder.Append(hash[i].ToString("x2"));
-                md5_hash = sBuilder.ToString();
+                    StringBuilder sBuilder = new StringBuilder();
+                    for (int i = 0; i < hash.Length; i++)
+                        sBuilder.Append(hash[i].ToString("x2"));
+                    md5_hash = sBuilder.ToString();
+                } catch (IOException) {
+                    Console.WriteLine("Could not access file {0}. Terminating now...", filename);
+                    return;
+                } catch (Exception e) {
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e.StackTrace);
+                    return;
+                }
 
                 string line = "";
                 try {
@@ -355,10 +366,14 @@ Samples:
                             }
                         }
                     }
+                } catch (IOException) {
+                    Console.WriteLine("Could not access file {0}. Terminating now...", filename);
+                    return;
                 } catch (Exception e) {
                     Console.WriteLine(e.Message);
                     Console.WriteLine(e.StackTrace);
                     Console.WriteLine(line);
+
                 }
                 Timer.Stop();
                 DumpResults();
