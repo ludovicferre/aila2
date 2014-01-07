@@ -43,25 +43,41 @@ Options:
                         filter string is a list of space seperated entries.
                         Each entry will be checked against the uri-stem field
                         and matching entries will not be printed out.
+                        
+    -s, --short         This option control the output formatting. If selected
+                        the output log file will only contain the following
+                        fields (and any other fields will be discarded):
+                        
+                            date
+                            time-taken
+                            cs-method
+                            cs-uri-stem
+                            cs-uri-query
+                            cs-username
+                            c-ip
+                            sc-status
+                            sc-substatus
+                            sc-win32-status
+                            time-taken
 
 If no file is specified the input will be read from the console (stdin).
 
 If no arguments are specified this help message will be shown, as we expect at
 least one of the 3 filters to be set (if you need to print a file to stdout you
-can use type).
+can use type) or the --short option.
 
 Note! The 3 filter are cascaded, which has some implication on what data will 
-be displayed. Here is a detail explantion of the proceeedings:
+be displayed. Here is a detail explanation of the proceedings:
 
-    Level 1: time-taken entries are matched. If nothing is specified by the 
+    Stage 1: time-taken entries are matched. If nothing is specified by the 
     user we use 0 as base. Entries greater or equal to the specified time-taken 
     are passed on to the next filtering level.
 
-    Level 2: exclusion entries are matched. Any match from the exclusion filter
+    Stage 2: exclusion entries are matched. Any match from the exclusion filter
     will not be printed out or passed on to the next level. If no exclusion 
     filters are defined the entries are passed on to the next level.
 
-    Level 3: inclusion entries are matched. Any match from the inclusion filter
+    Stage 3: inclusion entries are matched. Any match from the inclusion filter
     will be printed to stdout, miss will be discarded. If inclusion filters are
     not defined all entries received at this level are printed to stdout.
 
