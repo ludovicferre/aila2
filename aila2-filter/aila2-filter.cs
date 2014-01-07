@@ -269,7 +269,11 @@ Samples:
                 if (line.StartsWith("#")) {
                     if (line.StartsWith("#fields:")) {
                         schema.ParseSchemaString(line);
-                        print(ref line);
+                        if (short_output) {
+                            print_schema();
+                        } else {
+                            print(ref line);
+                        }
                     } else {
                         print(ref line);
                     }
@@ -344,6 +348,7 @@ Samples:
                     Console.Write(SupportedFields[j++] + ' ');
                 }
                 Console.WriteLine();
+
             }
         }
     }
