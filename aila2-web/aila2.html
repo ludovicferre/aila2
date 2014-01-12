@@ -4,42 +4,8 @@
 	<title>aila2: result viewer</title>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
-	<style type="text/css">
-        body { font-family: Arial;}
-        #_menu {
-	        position: fixed;
-	        top: 20px;
-	        padding-bottom: 2px;
-	        padding-top: 2px;
-	        left:920px;
-	        text-align: left;
-        }
-        .menu{
-	        padding-top:0px;
-	        padding-bottom: 2px;
-	        color: #000000;
-	        height: 20px;
-	        left: 920px;
-            top: 5px;
-	        position: fixed;
-	        font-size: 10px;
-        }
-        .submenu{
-	        display: block;
-	        height: 19px;
-	        padding-top: 2px;
-	        padding-right: 2px;
-	        color: #333333;
-        }
-
-        .hide{
-        display: none;
-        }
-        .show{
-        display: block;
-        }
-
-	</style>
+	<script type="text/javascript" src="aila2.js"></script>
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body id = "top">
     <a class='menu' onclick='showhide("_menu")'><b>[Navigation]</b></a>
@@ -91,24 +57,6 @@
 		google.load('visualization', '1', {packages:['table']});
 
 		google.setOnLoadCallback(SubmitRequest);
-		
-		function deepcopy(obj) {
-			if (Object.prototype.toString.call(obj) === '[object Array]') {
-				var out = [], i = 0, len = obj.length;
-				for ( ; i < len; i++ ) {
-					out[i] = arguments.callee(obj[i]);
-				}
-				return out;
-			}
-			if (typeof obj === 'object') {
-				var out = {}, i;
-				for ( i in obj ) {
-					out[i] = arguments.callee(obj[i]);
-				}
-				return out;
-			}
-			return obj;
-		}
 
 		var result_file = window.location.search.substring(1).toLowerCase();
 		var result_json;
@@ -133,6 +81,37 @@
 		}
 		
 		function drawCharts() {
+		
+			var t = result_json.stats.web_application;
+			if (arrayAllZero(t)) {
+				hide("webapp_table");
+				hide("webapp_table_div");
+				hide("webapp_chart");
+				hide("webapp_chart_div");
+				hide("webapp_timetaken_chart");
+				hide("webapp_timetaken_chart_div");
+			} else {
+				removeEmptyRows(t);
+			}
+			
+			t = result_json.stats.agent_interface;
+			if (arrayAllZero(t)) {
+				hide("agent_table");
+				hide("agent_table_div");
+				hide("agent_chart");
+				hide("agent_chart_div");
+			} else {
+				removeEmptyRows(t);
+			}
+			
+			t = result_json.stats.mime_type;
+			if (arrayAllZero(t)) {
+				hide("mime_chart");
+				hide("mime_chart_div");
+			} else {
+				removeEmptyRows(t)
+			}
+
 		
 			// Copy the hourly data to a new array
 			var table = deepcopy(result_json.stats.hourly);
@@ -234,8 +213,5 @@
 			agent_table.draw(agent_data, {showRowNumber: true});
 
 		}
-
-
-
     </script>
 </html>
