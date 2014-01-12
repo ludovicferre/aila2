@@ -114,7 +114,7 @@
 
 		
 			// Copy the hourly data to a new array
-			var table = deepcopy(result_json.stats.hourly);
+			var table = deep_copy(result_json.stats.hourly);
 			var data_hourly = google.visualization.arrayToDataTable(table);
 
 			var options_hourly = {
@@ -126,7 +126,7 @@
 			chart_hourly.draw(data_hourly, options_hourly);
 			
 			// Copy mime-type data
-			table = deepcopy(result_json.stats.mime_type);
+			table = deep_copy(result_json.stats.mime_type);
 			var data_mime = google.visualization.arrayToDataTable(table);
 			var options_mime = {
 			  //title: 'Mime type statistics',
@@ -138,13 +138,13 @@
 			chart_mime.draw(data_mime, options_mime);
 
 			// Copy web-application data
-			table = deepcopy(result_json.stats.web_application);
+			table = deep_copy(result_json.stats.web_application);
 			
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(2);
 			}
 			
-			var head = deepcopy(table);
+			var head = deep_copy(table);
 			head.splice(1);
 			table.shift();
 			table.sort();
@@ -160,12 +160,12 @@
 			chart_webapp.draw(data_webapp, options_webapp);
 			
 			// Copy agent interface 
-			table = deepcopy(result_json.stats.agent_interface);
+			table = deep_copy(result_json.stats.agent_interface);
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(2);
 			}
 			
-			head = deepcopy(table);
+			head = deep_copy(table);
 			head.splice(1);
 			table.shift();
 			table.sort();
@@ -183,14 +183,14 @@
 			chart_agent.draw(data_agent, options_agent);
 			
 			// Accumulated wait time per web-application
-			table = deepcopy(result_json.stats.web_application);
+			table = deep_copy(result_json.stats.web_application);
 			
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(1, 1);
 				table[i].pop();
 			}
 
-			head = deepcopy(table);
+			head = deep_copy(table);
 			head.splice(1);
 			table.shift();
 			table.sort();
