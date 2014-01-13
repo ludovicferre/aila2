@@ -1,3 +1,4 @@
+/* Array helper functions */
 function deep_copy(obj) {
 	if (Object.prototype.toString.call(obj) === '[object Array]') {
 		var out = [], i = 0, len = obj.length;
@@ -14,12 +15,6 @@ function deep_copy(obj) {
 		return out;
 	}
 	return obj;
-}
-
-
-function hide(elem) {
-	var e = document.getElementById(elem);
-	e.className = "hide";
 }
 
 function arrayAllZero(array) {
@@ -41,4 +36,77 @@ function removeEmptyRows(array) {
 			i--;
 		}
 	}
+}
+
+function sort_th(table) {
+	head = deep_copy(table);
+	head.splice(1, head.length - 1);
+	table.shift();
+	table.sort();
+	return head.concat(table);
+}
+
+function reverse_th(table) {
+	head = deep_copy(table);
+	head.splice(1, head.length - 1);
+	table.shift();
+	table.reverse();
+	return head.concat(table);
+}
+
+/* Hide element by switching its class */
+function hide(elem) {
+	var e = document.getElementById(elem);
+	e.className = "hide";
+}
+
+/* Date handling functions */
+function get_shortdate(filename) {
+	var year;
+	var month;
+	var day;
+
+	if (filename.startsWith("u_ex")) {
+		// Sample: u_ex130411.json
+		year = 2000 + parseInt(filename.substring(4, 6));
+		month = filename.substring(6, 8);
+		day = filename.substring(8, 10);
+	} else if (filename.startsWith("ex")) {
+		// Sample: ex130324.json
+		year = 2000 + parseInt(filename.substring(2, 4));
+		month = filename.substring(4, 6);
+		day = filename.substring(6, 8);
+	}
+
+	return String(year) + "-" + String(month) + "-" + String(day);
+}
+
+function get_date(filename) {
+	var year;
+	var month;
+	var day;
+
+	if (filename.startsWith("u_ex")) {
+		// Sample: u_ex130411.json
+		year = 2000 + parseInt(filename.substring(4, 6));
+		month = filename.substring(6, 8);
+		day = filename.substring(8, 10);
+	} else if (filename.startsWith("ex")) {
+		// Sample: ex130324.json
+		year = 2000 + filename.substring(3, 5);
+		month = filename.substring(5, 7);
+		day = filename.substring(7, 9);
+	}
+
+	return new Date(year, month -1, day);
+}
+
+function get_dayString(day) {
+	var weekday =new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
+	return weekday[day];
+}
+
+function get_dayInt(filename) {
+	var date = get_date(filename);
+	return date.getDay();
 }
