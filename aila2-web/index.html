@@ -83,7 +83,7 @@
 
 			var file_limit;
 			if (typeof result_json.max_graphs != 'undefined') {
-				if (file_count > file_limit) {
+				if (file_count > result_json.max_graphs) {
 					file_limit = result_json.max_graphs;
 				} else {
 					file_limit = file_count;
