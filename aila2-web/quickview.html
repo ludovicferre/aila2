@@ -110,11 +110,11 @@
 			table = deep_copy(result_json.stats.web_application);
 			
 			for (var i = 0; i < table.length; i++) {
-				table[i].splice(2);
+				table[i].splice(2, table.length - 2);
 			}
 			
 			var head = deep_copy(table);
-			head.splice(1);
+			head.splice(1, table.length - 1);
 			table.shift();
 			table.sort();
 			var data = head.concat(table);
@@ -131,11 +131,11 @@
 			// Copy agent interface 
 			table = deep_copy(result_json.stats.agent_interface);
 			for (var i = 0; i < table.length; i++) {
-				table[i].splice(2);
+				table[i].splice(2, table.length - 1);
 			}
 			
 			head = deep_copy(table);
-			head.splice(1);
+			head.splice(1, head.length - 1);
 			table.shift();
 			table.sort();
 			data = head.concat(table);
@@ -160,7 +160,7 @@
 			}
 
 			head = deep_copy(table);
-			head.splice(1);
+			head.splice(1, head.length - 1);
 			table.shift();
 			table.sort();
 			data = head.concat(table);
