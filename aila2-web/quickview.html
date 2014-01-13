@@ -96,7 +96,7 @@
 			
 			// Copy mime-type data
 			table = deep_copy(result_json.stats.mime_type);
-			var data_mime = google.visualization.arrayToDataTable(table);
+			var data_mime = google.visualization.arrayToDataTable(sort_th(table));
 			var options_mime = {
 			  //title: 'Mime type statistics',
 			  hAxis: {title: 'Mime types'},
@@ -108,18 +108,11 @@
 
 			// Copy web-application data
 			table = deep_copy(result_json.stats.web_application);
-			
 			for (var i = 0; i < table.length; i++) {
 				table[i].splice(2, table.length - 2);
 			}
-			
-			var head = deep_copy(table);
-			head.splice(1, table.length - 1);
-			table.shift();
-			table.sort();
-			var data = head.concat(table);
-			
-			var data_webapp = google.visualization.arrayToDataTable(data);
+
+			var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
 			var options_webapp = {
 			  //title: 'Web-application statistics',
 			  hAxis: {title: 'URI Stem'}
@@ -134,13 +127,7 @@
 				table[i].splice(2, table.length - 1);
 			}
 			
-			head = deep_copy(table);
-			head.splice(1, head.length - 1);
-			table.shift();
-			table.sort();
-			data = head.concat(table);
-			
-			var data_agent = google.visualization.arrayToDataTable(data);
+			var data_agent = google.visualization.arrayToDataTable(sort_th(table));
 			var options_agent = {
 			  //title: 'Agent interface statistics',
 			  hAxis: {title: 'Agent page'},
@@ -159,13 +146,7 @@
 				table[i].pop();
 			}
 
-			head = deep_copy(table);
-			head.splice(1, head.length - 1);
-			table.shift();
-			table.sort();
-			data = head.concat(table);
-			
-			var data_webapp = google.visualization.arrayToDataTable(data);
+			var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
 			var options_webapp = {
 			  hAxis: {title: 'URI Stem'}
 			};
@@ -180,10 +161,6 @@
 			var agent_data = new google.visualization.arrayToDataTable(result_json.stats.agent_interface);
 			var agent_table = new google.visualization.Table(document.getElementById('agent_table_div'));
 			agent_table.draw(agent_data, {showRowNumber: true});
-
 		}
-
-
-
     </script>
 </html>
