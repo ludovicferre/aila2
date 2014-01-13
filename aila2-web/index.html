@@ -35,56 +35,6 @@
 		  };
 		}
 
-		function get_shortdate(filename) {
-			var year;
-			var month;
-			var day;
-
-			if (filename.startsWith("u_ex")) {
-				// Sample: u_ex130411.json
-				year = 2000 + parseInt(filename.substring(4, 6));
-				month = filename.substring(6, 8);
-				day = filename.substring(8, 10);
-			} else if (filename.startsWith("ex_")) {
-				// Sample: ex130324.json
-				year = 2000 + filename.substring(3, 5);
-				month = filename.substring(5, 7);
-				day = filename.substring(7, 9);
-			}
-			
-			return String(year) + "-" + String(month) + "-" + String(day);
-		}
-
-		function get_date(filename) {
-			var year;
-			var month;
-			var day;
-
-			if (filename.startsWith("u_ex")) {
-				// Sample: u_ex130411.json
-				year = 2000 + parseInt(filename.substring(4, 6));
-				month = filename.substring(6, 8);
-				day = filename.substring(8, 10);
-			} else if (filename.startsWith("ex_")) {
-				// Sample: ex130324.json
-				year = 2000 + filename.substring(4, 2);
-				month = filename.substring(6, 2);
-				day = filename.substring(8, 2);
-			}
-			
-			return new Date(year, month -1, day);
-		}
-
-		function get_dayString(day) {
-			var weekday =new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
-			return weekday[day];
-		}
-
-		function get_dayInt(filename) {
-			var date = get_date(filename);
-			return date.getDay();
-		}
-
 		function get_datafile() {
 		  new Ajax.Request(file_list[file_index], {
 			  method: 'get',
@@ -176,18 +126,8 @@
 		}
 
 		function draw_chart() {
-			var data = deep_copy(result_json.stats.hourly);
 
-			var head = deep_copy(data);
-			head.splice(1, head.length - 1);
-
-			data.shift();
-			data.reverse();
-
-			var table = head.concat(data);
-
-			var data_hourly = google.visualization.arrayToDataTable(table);
-
+			var data_hourly = google.visualization.arrayToDataTable(reverse_th(result_json.stats.hourly));
 			var options_hourly = {
 				//title: file_list[file_index],
 				// hAxis: {title: 'Hour'}
@@ -195,12 +135,11 @@
 
 			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div' + String(file_index)));
 			chart_hourly.draw(data_hourly, options_hourly);
-			
+
 			file_index++;
 			if (file_index < file_list.length) {
 				get_datafile();
 			}
 		}
-
     </script>
 </html>
