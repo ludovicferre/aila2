@@ -308,6 +308,18 @@ Samples:
                 ip_list = new SortedDictionary<string, int>();
                 ip_hitters = new SortedList<int, List<string>>();
             }
+
+            public string GetIpList() {
+                // Generate the ordered (des) hit list
+                StringBuilder output = new StringBuilder();
+                output.Append("IP address, Hit #\n");
+                for (int i = ip_hitters.Count - 1; i > 0; i--) {
+                    foreach (string c_ip in ip_hitters.Values[i]) {
+                        output.AppendFormat("{0}, {1}\n", c_ip, ip_hitters.Keys[i].ToString());
+                    }
+                }
+                return output.ToString();
+            }
         }
 
         class LogAnalyzer {
@@ -655,10 +667,9 @@ Samples:
                         foreach (string s in ip_list) {
                             output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", s, hit_count.ToString());
                         }
-                        output.Length = output.Length - 2;
                     }
-
                 }
+                output.Length = output.Length - 2;
 
                 // CLOSE THE JSON
                 output.AppendLine("\n\t\t]\n\t}\n}");
@@ -671,6 +682,7 @@ Samples:
                     Console.WriteLine(output.ToString());
                 } else {
                     SaveToFile(config.out_path + filename.Replace(".log", ".json"), output.ToString());
+                    SaveToFile(config.out_path + filename.Replace(".log", ".txt"), results.IP_Handler.GetIpList());
                 }
             }
         }
