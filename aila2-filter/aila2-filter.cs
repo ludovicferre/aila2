@@ -117,7 +117,7 @@ Samples:
                 short_output = false;
 
                 if (args.Length == 1) {
-                    #region // Handle case when 1 agrument alone is provided
+                    #region // Handle case when 1 argument alone is provided
                     if (args[0] == "-v" || args[0] == "--version") {
                         Console.WriteLine("aila2-filter version 1.");
                         return 0;
@@ -134,13 +134,10 @@ Samples:
                     file_path = "";
                     time_taken = 0;
 
-                    int i = 0;
-
-                    exclude = false;
-                    include = false;
-
                     int valid_args = 0;
                     int argc = args.Length;
+
+                    int i = 0;
                     while (i < argc) {
                         if (args[i] == "-f" || args[i] == "--file") {
                             if (argc > i + 1) {
@@ -148,7 +145,7 @@ Samples:
                                 valid_args += 2;
                                 continue;
                             } else {
-                                return 0;
+                                return -1;
                             }
                         }
                         if (args[i] == "-s" || args[i] == "--short") {
@@ -231,13 +228,6 @@ Samples:
                     }
                     l++;
                 }
-                /*
-                int j = 0;
-                foreach (int k in field_positions) {
-                    Console.Error.WriteLine("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]);
-                    j++;
-                }
-                */
                 if (field_positions.Count > 0)
                     ready = true;
             }
