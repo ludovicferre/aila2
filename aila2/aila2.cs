@@ -111,7 +111,7 @@ Samples:
             };
 
             public void dump_config() {
-                Console.WriteLine("Command line arguments parsing generaterd the following configuration:");
+                Console.WriteLine("Command line arguments parsing generated the following configuration:");
                 Console.WriteLine("File path:\t\t{0}", file_path);
                 Console.WriteLine("Output directory:\t{0}", out_path);
                 Console.WriteLine("Progress bar:\t\t{0}", progress_bar.ToString());
@@ -198,6 +198,8 @@ Samples:
 
             public int[,] HOURLY_hit_counter;
 
+            public IpHitLists IP_Handler;
+
             public ResultSet() {
                 LineCount = DataLines = SchemaDef = 0;
 
@@ -213,6 +215,7 @@ Samples:
                 WEBAPP_Hit_counter = new long[constants.atrs_iis_vdir.Length, 3];
                 AGENT_Hit_counter = new long[constants.atrs_agent_req.Length, 3];
 
+                IP_Handler = new IpHitLists();
             }
         }
 
@@ -297,6 +300,16 @@ Samples:
 
         }
 
+        class IpHitLists {
+            public SortedDictionary<string, int> ip_list;
+            public SortedList<int, List<string>> ip_hitters;
+
+            public IpHitLists() {
+                ip_list = new SortedDictionary<string, int>();
+                ip_hitters = new SortedList<int, List<string>>();
+            }
+        }
+
         class LogAnalyzer {
             private ResultSet results;
             private SchemaParser schema;
@@ -322,7 +335,6 @@ Samples:
                 results = new ResultSet();
                 schema = new SchemaParser();
             }
-
 
             public void AnalyzeFile(string filepath) {
 
@@ -433,9 +445,24 @@ Samples:
                 // Convert the values from string to in now
                 _hour = Convert.ToInt32(current_line[(int)FieldPositions.time].Substring(0, 2));
                 _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
-                _status = Convert.ToInt64(current_line[(int)FieldPositions.status]); ;
-                _substatus = Convert.ToInt64(current_line[(int)FieldPositions.substatus]); ;
-                _win32status = Convert.ToInt64(current_line[(int)FieldPositions.win32status]); ;
+                _status = Convert.ToInt64(current_line[(int)FieldPositions.status]);
+
+                if (_status < 300) {
+                    // HTTP 20x
+                    results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_success]++;
+                } else if (_status < 400) {
+                    // HTTP 30x
+                    results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_redirect]++;
+                } else if (_status < 500) {
+                    // HTTP 40x
+                    results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_client_error]++;
+                } else {
+                    // HTTP 50x
+                    results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_server_error]++;
+                }
+
+                _substatus = Convert.ToInt64(current_line[(int)FieldPositions.substatus]);
+                _win32status = Convert.ToInt64(current_line[(int)FieldPositions.win32status]);
 
                 Logger.log_evt(log_levels.debugging, "Running analysis - part I (hourly hits) ...");
                 // Global hourly stats
@@ -448,6 +475,13 @@ Samples:
                 // Analyze web-application
                 Logger.log_evt(log_levels.debugging, "Running analysis - part III (web-apps) ...");
                 Analyze_WebApp(ref current_line[(int)FieldPositions.uristem]);
+
+                string c_ip = current_line[(int)FieldPositions.ip];
+                if (results.IP_Handler.ip_list .ContainsKey(c_ip)) {
+                    results.IP_Handler.ip_list[c_ip]++;
+                } else {
+                    results.IP_Handler.ip_list.Add(c_ip, 1);
+                }
             }
 
             private int Analyze_MimeTypes(ref string uri) {
@@ -564,6 +598,16 @@ Samples:
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
 
+                // HTTP Status code stats
+                output.AppendFormat("\t\t\"http_status\" : [\n");
+                output.AppendFormat("\t\t\t[\"Http-status\", \"Hit #\"],\n");
+                for (int j = 0; j < 4; j++) {
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.iis_status_code[j], results.IIS_STATUS_hit_counter[j].ToString());
+                }
+                output.Length = output.Length - 2; // Remove the last ",\n"
+                output.AppendLine("\n\t\t],");
+
+
                 // AGENT INTERFACE STATS
                 output.AppendFormat("\t\t\"agent_interface\" : [\n");
                 output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
@@ -577,6 +621,46 @@ Samples:
                 }
 
                 output.Length = output.Length - 2; // Remove the last ",\n"
+                output.Append("\n\t\t],");
+
+                // IP ADDRESS TOP 20 HITTERS
+                foreach (KeyValuePair<string, int> kvp in results.IP_Handler.ip_list) {
+                    // Console.WriteLine("{0}:\t\t{1}", kvp.Key, kvp.Value.ToString());
+                    if (results.IP_Handler.ip_hitters.ContainsKey(kvp.Value)) {
+                        // Update existing value (i.e. add ip to list)
+                        results.IP_Handler.ip_hitters[kvp.Value].Add(kvp.Key);
+                    } else {
+                        List<string> l = new List<string>();
+                        l.Add(kvp.Key);
+                        results.IP_Handler.ip_hitters.Add(kvp.Value, l);
+                    }
+                }
+
+                int i = results.IP_Handler.ip_hitters.Count;
+                output.AppendFormat("\n\t\t\"ip_hit_top\" : [\n");
+                output.AppendFormat("\t\t\t[\"Hit count\", \"IP Address\"],\n");
+
+                for (int j = 1; j < 21; j++) {
+
+                    if (i - j <= 0) {
+                        break;
+                    }
+                    int hit_count = results.IP_Handler.ip_hitters.Keys[i - j];
+                    List<string> ip_list = results.IP_Handler.ip_hitters.Values[i - j];
+
+                    if (ip_list.Count < 2) {
+                        output.AppendFormat("\t\t\t[\"{0}\",", ip_list[0]);
+                        output.AppendFormat("{0}],\n", hit_count.ToString());
+                    } else {
+                        foreach (string s in ip_list) {
+                            output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", s, hit_count.ToString());
+                        }
+                        output.Length = output.Length - 2;
+                    }
+
+                }
+
+                // CLOSE THE JSON
                 output.AppendLine("\n\t\t]\n\t}\n}");
 
                 if (!config.out_path.EndsWith("\\")) {
