@@ -5,7 +5,7 @@
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.1.0/prototype.js"></script>
 	<script type="text/javascript" src="aila2.js"></script>
-	<link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body id = "top">
     <a class='menu' onclick='showhide("_menu")'><b>[Navigation]</b></a>
@@ -15,28 +15,42 @@
         <a href='#hourly_chart' class='submenu'>Hourly chart</a>
         <a href='#webapp_chart' class='submenu'>Web-app chart</a>
         <a href='#agent_chart' class='submenu'>NS-Agent chart</a>
-        <a href='#mime_chart' class='submenu'>Mime-type chart chart</a>
+		<a href='#task_chart' class='submenu'>Task chart</a>
+		<a href='#invrule_chart' class='submenu'>Inv-Rule chart</a>
+		<a href='#http_status_chart' class='submenu'>Http status chart</a>
+        <a href='#mime_chart' class='submenu'>Mime-type chart</a>
         <a href='#webapp_timetaken_chart' class='submenu'>Web-app time-taken chart</a>
-		<a href="#webapp_table" class="submenu">Web application table</a>
-		<a href="#agent_table" class="submenu">Agent interface table</a>		
+		<a href="#webapp_table" class="submenu">Web-app table</a>
+		<a href="#agent_table" class="submenu">Agent table</a>
+		<a href="#agent_table" class="submenu">Task table</a>
+		<a href="#agent_table" class="submenu">Inv-Rule table</a>
     </div>
-	<h2>aila2 - Charts</h2>
-	<h3 id ="hourly_chart">Hourly hit counts</h3>
-	<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
-	<h3 id="webapp_chart">Web-app distribution</h3>
-	<div id="webapp_chart_div" style="width: 900px; height: 300px;"></div>
-	<h3 id="agent_chart">Altiris Agent Interfaces</h3>
-	<div id="agent_chart_div" style="width: 900px; height: 300px;"></div>
-	<h3 id="mime_chart">Mime types distribution</h3>
-	<div id="mime_chart_div" style="width: 900px; height: 300px;"></div>
-	<h3 id="webapp_timetaken_chart">Accumulated time-taken per web-app</h3>
-	<div id="webapp_timetaken_chart_div" style="width: 900px; height: 300px;"></div>
-	<h2>Raw data sets</h2>
-	<h3 id='webapp_table'>Web application data</h3>
-	<div id='webapp_table_div' style="width: 900px;"></div>
-	<h3 id='agent_table'>Agent interface data</h3>
-	<div id='agent_table_div' style="width: 900px;"></div>
-	<div style="height:800px"/>
+		<h2>aila2 - Charts</h2>
+		<h3 id ="hourly_chart">Hourly hit counts</h3>
+		<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="webapp_chart">Web-app distribution</h3>
+		<div id="webapp_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="agent_chart">Altiris Agent Interfaces</h3>
+		<div id="agent_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="task_chart">Task Management Interfaces</h3>
+		<div id="task_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="invrule_chart">Inventory Rule Management Parameters</h3>
+		<div id="invrule_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="http_status_chart">Http Status</h3>
+		<div id="http_status_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="mime_chart">Mime types distribution</h3>
+		<div id="mime_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id="webapp_timetaken_chart">Accumulated time-taken per web-app</h3>
+		<div id="webapp_timetaken_chart_div" style="width: 900px; height: 300px;"></div>
+		<h2>Raw data sets</h2>
+		<h3 id='webapp_table'>Web application data</h3>
+		<div id='webapp_table_div' style="width: 900px;"></div>
+		<h3 id='agent_table'>Agent interface data</h3>
+		<div id='agent_table_div' style="width: 900px;"></div>
+		<h3 id='task_table'>Task Management data</h3>
+		<div id='task_table_div' style="width: 900px;"></div>
+		<h3 id='invrule_table'>Inventory Rule Management data</h3>
+		<div id='invrule_table_div' style="width: 900px;"></div>
 </body>
 	 <script type="text/javascript">
 		menu_status = new Array();
@@ -79,121 +93,190 @@
 		function failureFunc(response){
 			 alert("File " + result_file + " could not be loaded..." );
 		}
-		
+
 		function drawCharts() {
-		
-			var t = result_json.stats.web_application;
-			if (arrayAllZero(t)) {
-				hide("webapp_table");
-				hide("webapp_table_div");
-				hide("webapp_chart");
-				hide("webapp_chart_div");
-				hide("webapp_timetaken_chart");
-				hide("webapp_timetaken_chart_div");
+		    // HOURLY CHART
+			if (typeof(result_json.stats.hourly) != "undefined") {
+			    var table = deep_copy(result_json.stats.hourly);
+			    var data_hourly = google.visualization.arrayToDataTable(table);
+			    var options_hourly = {hAxis: {title: 'Hour'}};
+			    var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div'));
+			    chart_hourly.draw(data_hourly, options_hourly);
 			} else {
-				removeEmptyRows(t);
+			    hide("hourly_chart");
+			    hide("hourly_chart_div");
 			}
-			
-			t = result_json.stats.agent_interface;
-			if (arrayAllZero(t)) {
-				hide("agent_table");
-				hide("agent_table_div");
-				hide("agent_chart");
-				hide("agent_chart_div");
+            // ALTIRIS WEB-APPLICATIONS
+			if (typeof(result_json.stats.web_application) != "undefined") {
+			    var t = result_json.stats.web_application;
+			    if (arrayAllZero(t)) {
+				    hide("webapp_table");
+				    hide("webapp_table_div");
+				    hide("webapp_chart");
+				    hide("webapp_chart_div");
+				    hide("webapp_timetaken_chart");
+				    hide("webapp_timetaken_chart_div");
+			    } else {
+				    removeEmptyRows(t);
+			        table = deep_copy(result_json.stats.web_application);
+			        for (var i = 0; i < table.length; i++) {
+				        table[i].splice(2, table.length - 2);
+			        }
+
+			        var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_webapp = {hAxis: {title: 'URI Stem'}};
+			        var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_chart_div'));
+			        chart_webapp.draw(data_webapp, options_webapp);
+
+			        table = deep_copy(result_json.stats.web_application);			
+			        for (var i = 0; i < table.length; i++) {
+				        table[i].splice(1, 1);
+				        table[i].pop();
+			        }
+
+	    			var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
+			        var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_timetaken_chart_div'));
+			        chart_webapp.draw(data_webapp, {hAxis: {title: 'URI Stem'}});
+
+			        var webapp_data = new google.visualization.arrayToDataTable(result_json.stats.web_application);
+			        var webapp_table = new google.visualization.Table(document.getElementById('webapp_table_div'));
+			        webapp_table.draw(webapp_data, {showRowNumber: true});
+			    }
 			} else {
-				removeEmptyRows(t);
+				    hide("webapp_table");
+				    hide("webapp_table_div");
+				    hide("webapp_chart");
+				    hide("webapp_chart_div");
+				    hide("webapp_timetaken_chart");
+				    hide("webapp_timetaken_chart_div");
 			}
-			
-			t = result_json.stats.mime_type;
-			if (arrayAllZero(t)) {
-				hide("mime_chart");
-				hide("mime_chart_div");
+			// ALTIRIS NS AGENT
+			if (typeof(result_json.stats.agent_interface) != "undefined") {
+			    var t = result_json.stats.agent_interface;
+			    if (arrayAllZero(t)) {
+				    hide("agent_table");
+				    hide("agent_table_div");
+				    hide("agent_chart");
+				    hide("agent_chart_div");
+			    } else {
+				    removeEmptyRows(t);
+
+			        table = deep_copy(result_json.stats.agent_interface);
+			        for (var i = 0; i < table.length; i++) {
+				        table[i].splice(2, table.length - 1);
+			        }
+			        var data_agent = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_agent = {hAxis: {title: 'Agent page'},colors: ['orange']};
+			        var chart_agent = new google.visualization.ColumnChart(document.getElementById('agent_chart_div'));
+			        chart_agent.draw(data_agent, options_agent);
+
+			        var agent_data = new google.visualization.arrayToDataTable(result_json.stats.agent_interface);
+			        var agent_table = new google.visualization.Table(document.getElementById('agent_table_div'));
+			        agent_table.draw(agent_data, {showRowNumber: true});
+			    }
 			} else {
-				removeEmptyRows(t)
+				    hide("agent_table");
+				    hide("agent_table_div");
+				    hide("agent_chart");
+				    hide("agent_chart_div");			
 			}
+            // TASK MANAGEMENT CHART + TABLE
+			if (typeof(result_json.stats.task_interface) != "undefined") {
+			    t = result_json.stats.task_interface;
+			    if (arrayAllZero(t)) {
+				    hide("task_table");
+				    hide("task_table_div");
+				    hide("task_chart");
+				    hide("task_chart_div");
+			    } else {
+				    removeEmptyRows(t);
+			        table = deep_copy(result_json.stats.task_interface);
+			        for (var i = 0; i < table.length; i++) {
+				        table[i].splice(2, table.length - 2);
+			        }
+			        var data_task = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_task = {colors: ['purple'],hAxis: {title: 'Task interface'}};
+			        var chart_task = new google.visualization.ColumnChart(document.getElementById('task_chart_div'));
+			        chart_task.draw(data_task, options_task);
 
-		
-			// Copy the hourly data to a new array
-			var table = deep_copy(result_json.stats.hourly);
-			var data_hourly = google.visualization.arrayToDataTable(table);
+			        var task_data = new google.visualization.arrayToDataTable(result_json.stats.task_interface);
+			        var task_table = new google.visualization.Table(document.getElementById('task_table_div'));
+			        task_table.draw(task_data, {showRowNumber: true});
+			    }
+			} else {
+				    hide("task_table");
+				    hide("task_table_div");
+				    hide("task_chart");
+				    hide("task_chart_div");
+            }
+			// INVENTORY RULE MANAGEMENT
+			if (typeof(result_json.stats.invrule_interface) != "undefined") {
+			    t = result_json.stats.invrule_interface;
+			    if (arrayAllZero(t)) {
+				    hide("invrule_table");
+				    hide("invrule_table_div");
+				    hide("invrule_chart");
+				    hide("invrule_chart_div");
+			    } else {
+				    removeEmptyRows(t);
 
-			var options_hourly = {
-			  //title: 'Hourly statistics',
-			  hAxis: {title: 'Hour'}
-			};
+			        table = deep_copy(result_json.stats.invrule_interface);
+			        for (var i = 0; i < table.length; i++) {
+				        table[i].splice(2, table.length - 2);
+			        }
+			        var data_invrule = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_invrule = {colors: ['darkred'],hAxis: {title: 'Request param'}};
+			        var chart_invrule = new google.visualization.ColumnChart(document.getElementById('invrule_chart_div'));
+			        chart_invrule.draw(data_invrule, options_invrule);
 
-			var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div'));
-			chart_hourly.draw(data_hourly, options_hourly);
-			
-			// Copy mime-type data
-			table = deep_copy(result_json.stats.mime_type);
-			var data_mime = google.visualization.arrayToDataTable(sort_th(table));
-			var options_mime = {
-			  //title: 'Mime type statistics',
-			  hAxis: {title: 'Mime types'},
-  			  colors: ['red']
-			};
-
-			var chart_mime = new google.visualization.ColumnChart(document.getElementById('mime_chart_div'));
-			chart_mime.draw(data_mime, options_mime);
-
-			// Copy web-application data
-			table = deep_copy(result_json.stats.web_application);
-			
-			for (var i = 0; i < table.length; i++) {
-				table[i].splice(2, table[i].length);
-			}
-			
-			var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
-			var options_webapp = {
-			  //title: 'Web-application statistics',
-			  hAxis: {title: 'URI Stem'}
-			};
-
-			var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_chart_div'));
-			chart_webapp.draw(data_webapp, options_webapp);
-			
-			// Copy agent interface 
-			table = deep_copy(result_json.stats.agent_interface);
-			for (var i = 0; i < table.length; i++) {
-				table[i].splice(2, table[i].length);
-			}
-
-			var data_agent = google.visualization.arrayToDataTable(sort_th(table));
-			var options_agent = {
-			  //title: 'Agent interface statistics',
-			  hAxis: {title: 'Agent page'},
-   			  colors: ['orange']
-
-			};
-
-			var chart_agent = new google.visualization.ColumnChart(document.getElementById('agent_chart_div'));
-			chart_agent.draw(data_agent, options_agent);
-			
-			// Accumulated wait time per web-application
-			table = deep_copy(result_json.stats.web_application);
-			
-			for (var i = 0; i < table.length; i++) {
-				table[i].splice(1, 1);
-				table[i].pop();
-			}
-
-			var data_webapp = google.visualization.arrayToDataTable(sort_th(table));
-			var options_webapp = {
-			  hAxis: {title: 'URI Stem'}
-			};
-
-			var chart_webapp = new google.visualization.ColumnChart(document.getElementById('webapp_timetaken_chart_div'));
-			chart_webapp.draw(data_webapp, options_webapp);
-			
-			var webapp_data = new google.visualization.arrayToDataTable(result_json.stats.web_application);
-			var webapp_table = new google.visualization.Table(document.getElementById('webapp_table_div'));
-			webapp_table.draw(webapp_data, {showRowNumber: true});
-			
-			var agent_data = new google.visualization.arrayToDataTable(result_json.stats.agent_interface);
-			var agent_table = new google.visualization.Table(document.getElementById('agent_table_div'));
-			agent_table.draw(agent_data, {showRowNumber: true});
-
+			        var invrule_data = new google.visualization.arrayToDataTable(result_json.stats.invrule_interface);
+			        var invrule_table = new google.visualization.Table(document.getElementById('invrule_table_div'));
+			        invrule_table.draw(invrule_data, {showRowNumber: true});
+			    }
+			} else {
+				    hide("invrule_table");
+				    hide("invrule_table_div");
+				    hide("invrule_chart");
+				    hide("invrule_chart_div");
+            }
+			// HTTP STATUS
+			if (typeof(result_json.stats.http_status) != "undefined") {
+				t = result_json.stats.http_status;
+				if (arrayAllZero(t)) {
+					hide("http_status_chart");
+					hide("http_status_chart_div");
+				} else {
+					table = deep_copy(result_json.stats.http_status);
+        			for (var i = 0; i < table.length; i++) {
+		        		table[i].splice(2, table.length - 2);
+        			}
+                    var data_httpstatus = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_httpstatus = {colors: ['darkgreen'],hAxis: {title: 'Http status'}};
+			        var chart_httpstatus = new google.visualization.ColumnChart(document.getElementById('http_status_chart_div'));
+			        chart_httpstatus.draw(data_httpstatus, options_httpstatus);
+				}
+			} else {
+				hide("http_status_chart");
+				hide("http_status_chart_div");
+            }
+			// MIME TYPE
+			if (typeof(result_json.stats.mime_type) != "undefined") {
+			    t = result_json.stats.mime_type;
+			    if (arrayAllZero(t)) {
+				    hide("mime_chart");
+				    hide("mime_chart_div");
+			    } else {
+				    removeEmptyRows(t)
+			        table = deep_copy(result_json.stats.mime_type);
+			        var data_mime = google.visualization.arrayToDataTable(sort_th(table));
+			        var options_mime = {hAxis: {title: 'Mime types'},colors: ['hotpink']};
+			        var chart_mime = new google.visualization.ColumnChart(document.getElementById('mime_chart_div'));
+			        chart_mime.draw(data_mime, options_mime);
+			    }
+            } else {
+                hide("mime_chart");
+                hide("mime_chart_div");
+            }
 		}
     </script>
 </html>
