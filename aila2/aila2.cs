@@ -195,6 +195,8 @@ Samples:
 
             public long[,] WEBAPP_Hit_counter;
             public long[,] AGENT_Hit_counter;
+            public long[,] TASK_Hit_counter;
+            public long[,] IRM_Hit_counter;
 
             public int[,] HOURLY_hit_counter;
 
@@ -203,7 +205,7 @@ Samples:
             public ResultSet() {
                 LineCount = DataLines = SchemaDef = 0;
 
-                HOURLY_hit_counter = new int[24, 5]; // Total, PostEvent, PkgInfo, GetPolicies, ?
+                HOURLY_hit_counter = new int[24, 10]; // Total, PostEvent, PkgInfo, GetPolicies, TaskManagement, InventoryRuleManagement
 
                 IIS_STATUS_hit_counter = new int[10];
                 IIS_SUB_STATUS_hit_counter = new int[10];
@@ -211,9 +213,11 @@ Samples:
 
                 MIME_TYPE_hit_counter = new int[constants.http_mime_type.Length];
 
-                // We track hit count, total duration and max duration per web-app
+                // We track hit count, total duration and max duration per web-app and high hit interfaces
                 WEBAPP_Hit_counter = new long[constants.atrs_iis_vdir.Length, 3];
                 AGENT_Hit_counter = new long[constants.atrs_agent_req.Length, 3];
+                TASK_Hit_counter = new long[constants.atrs_task_req.Length, 3];
+                IRM_Hit_counter = new long[constants.atrs_irm_params.Length, 3];
 
                 IP_Handler = new IpHitLists();
             }
@@ -486,7 +490,7 @@ Samples:
 
                 // Analyze web-application
                 Logger.log_evt(log_levels.debugging, "Running analysis - part III (web-apps) ...");
-                Analyze_WebApp(ref current_line[(int)FieldPositions.uristem]);
+                Analyze_WebApp(ref current_line[(int)FieldPositions.uristem], ref current_line[(int)FieldPositions.uriquery]);
 
                 string c_ip = current_line[(int)FieldPositions.ip];
                 if (results.IP_Handler.ip_list .ContainsKey(c_ip)) {
@@ -512,7 +516,7 @@ Samples:
                 return i - 1;
             }
 
-            private int Analyze_WebApp(ref string uri) {
+            private int Analyze_WebApp(ref string uri, ref string param) {
                 int i = 0;
                 foreach (string app in constants.atrs_iis_vdir) {
                     Logger.log_evt(log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
@@ -523,9 +527,13 @@ Samples:
                     i++;
                 }
 
-                if (i == 0) {
+                if (i == (int) constants.ATRS_IIS_VDIR._atrs_ns_agent) {
                     // We are inside the Altiris-NS-Agent web-app. Do further analysis.
                     Analyze_NSAgent(ref uri);
+                } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_tm) {
+                    Analyze_TaskMgmt(ref uri);
+                } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_irm) {
+                    Analyze_IRM(ref param);
                 } else if (i >= constants.atrs_iis_vdir.Length) {
                     i = constants.atrs_iis_vdir.Length - 1;
                 }
@@ -550,13 +558,46 @@ Samples:
                 }
                 if (i == (int)constants.ATRS_AGENT_REQ._post_event_asp || i == (int)constants.ATRS_AGENT_REQ._post_event_aspx) {
                     // Add to hourly accounting
-                    results.HOURLY_hit_counter[_hour, 1]++;
+                    results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._postevent]++;
                 } else if (i == (int)constants.ATRS_AGENT_REQ._get_pkg_info) {
-                    results.HOURLY_hit_counter[_hour, 2]++;
+                    results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._packageinfo]++;
                 } else if (i == (int)constants.ATRS_AGENT_REQ._get_client_policy) {
-                    results.HOURLY_hit_counter[_hour, 3]++;
+                    results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._getpolicies]++;
                 }
                 return 0;
+            }
+
+            private void Analyze_TaskMgmt(ref string uri) {
+                int i = 0;
+                for (i = 0; i < constants.atrs_task_req.Length; i++) {
+                    string page_name = constants.atrs_task_req[i];
+                    if (uri.EndsWith(page_name)) {
+                        results.TASK_Hit_counter[i, 0]++;
+                        results.TASK_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        if (results.TASK_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
+                            results.TASK_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        break;
+                    }
+                }
+                // Add to hourly accounting
+                results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._taskmgmt]++;
+            }
+
+            private void Analyze_IRM(ref string param) {
+                int i = 0;
+                for (i = 0; i < constants.atrs_irm_params.Length; i++) {
+                    string query_name = constants.atrs_irm_params[i];
+                    if (param.StartsWith(query_name)) {
+                        results.IRM_Hit_counter[i, 0]++;
+                        results.IRM_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        if (results.IRM_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
+                            results.IRM_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        break;
+                    }
+                }
+                // Add to hourly accounting
+                results.HOURLY_hit_counter[_hour, (int)constants.HOURLY_TABLE._invrulemgmt]++;
+
             }
 
             private void SaveToFile(string filepath, string data) {
@@ -580,9 +621,16 @@ Samples:
 
                 // HOURLY STATS
                 output.Append("\t\t\"hourly\" : [\n");
-                output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Package Info\"],\n");
+                output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Pkg Info\", \"Task Mgmt\", \"Inv. Rule Mgmt\"],\n");
                 for (int j = 0; j < 24; j++) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", j.ToString(), results.HOURLY_hit_counter[j, 0].ToString(), results.HOURLY_hit_counter[j, 1].ToString(), results.HOURLY_hit_counter[j, 2].ToString(), results.HOURLY_hit_counter[j, 3].ToString());
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}],\n", 
+                        j.ToString(),
+                        results.HOURLY_hit_counter[j, 0].ToString(),
+                        results.HOURLY_hit_counter[j, 1].ToString(),
+                        results.HOURLY_hit_counter[j, 2].ToString(),
+                        results.HOURLY_hit_counter[j, 3].ToString(),
+                        results.HOURLY_hit_counter[j, 4].ToString(),
+                        results.HOURLY_hit_counter[j, 5].ToString());
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -617,7 +665,7 @@ Samples:
                     output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.iis_status_code[j], results.IIS_STATUS_hit_counter[j].ToString());
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
-                output.AppendLine("\n\t\t],");
+                output.Append("\n\t\t],\n");
 
 
                 // AGENT INTERFACE STATS
@@ -633,7 +681,47 @@ Samples:
                 }
 
                 output.Length = output.Length - 2; // Remove the last ",\n"
+                output.Append("\n\t\t],\n");
+
+                // TASK MANAGEMENT INTERFACE STATS
+                output.AppendFormat("\t\t\"task_interface\" : [\n");
+                output.AppendFormat("\t\t\t[\"Task interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+                for (int j = 0; j < constants.atrs_task_req.Length; j++) {
+                    float avg = 0;
+                    if (results.TASK_Hit_counter[j, 1] > 0) {
+                        avg = (float)results.TASK_Hit_counter[j, 1] / (float)results.TASK_Hit_counter[j, 0];
+                    }
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", 
+                        constants.json_task_req[j],
+                        results.TASK_Hit_counter[j, 0].ToString(),
+                        results.TASK_Hit_counter[j, 1].ToString(),
+                        results.TASK_Hit_counter[j, 2].ToString(),
+                        FloatToDottedString(avg));
+                }
+
+                output.Length = output.Length - 2; // Remove the last ",\n"
+                output.Append("\n\t\t],\n");
+
+                // INVENTORY RULE MANAGEMENT PARAM STATS
+                output.AppendFormat("\t\t\"invrule_interface\" : [\n");
+                output.AppendFormat("\t\t\t[\"IRM AgentRuleData.ashx\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+                for (int j = 0; j < constants.atrs_irm_params.Length; j++) {
+                    float avg = 0;
+                    if (results.IRM_Hit_counter[j, 1] > 0) {
+                        // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
+                        avg = (float)results.IRM_Hit_counter[j, 1] / (float)results.IRM_Hit_counter[j, 0];
+                    }
+                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n",
+                        constants.json_irm_params[j],
+                        results.IRM_Hit_counter[j, 0].ToString(),
+                        results.IRM_Hit_counter[j, 1].ToString(),
+                        results.IRM_Hit_counter[j, 2].ToString(),
+                        FloatToDottedString(avg));
+                }
+
+                output.Length = output.Length - 2; // Remove the last ",\n"
                 output.Append("\n\t\t],");
+
 
                 // IP ADDRESS TOP 20 HITTERS
                 foreach (KeyValuePair<string, int> kvp in results.IP_Handler.ip_list) {
