@@ -13,6 +13,7 @@ namespace Symantec.CWoC {
         public static bool include;
         public static string[] exclusion_filter;
         public static string[] inclusion_filter;
+        public static string filter_type;
         public static bool short_output;
 
         #region public static string HELP_MESSAGE
@@ -111,6 +112,7 @@ Samples:
             } else {
                 // Init the generic args to safe values;
                 file_path = "";
+                filter_type = "uri";
                 time_taken = 0;
                 exclude = false;
                 include = false;
@@ -138,14 +140,31 @@ Samples:
                     int argc = args.Length;
 
                     int i = 0;
+
+                    for (int j = 0; j < argc; j++) {
+                        args[j] = args[j].ToLower();
+                    }
+
                     while (i < argc) {
                         if (args[i] == "-f" || args[i] == "--file") {
-                            if (argc > i + 1) {
+                            if (argc > i) {
                                 file_path = args[++i];
                                 valid_args += 2;
                                 continue;
                             } else {
                                 return -1;
+                            }
+                        }
+                        if (args[i] == "--type") {
+                            /* Handle filter types here. Supported types are:
+                               - uri
+                               - param
+                               - cip
+                               - status
+                             */
+                            if (argc > i) {
+                                filter_type = args[++i];
+                                valid_args += 2;
                             }
                         }
                         if (args[i] == "-s" || args[i] == "--short") {
@@ -184,6 +203,7 @@ Samples:
                             return 0;
                         }
                     } else {
+                        Console.WriteLine("We validated {0} args for {1} args provided.", valid_args, argc);
                         Console.WriteLine(HELP_MESSAGE);
                         return -1;
                     }
@@ -299,41 +319,67 @@ Samples:
                     i++;
                 }
 
+                if (output_line()) {
+                    if (short_output) {
+                        print(ref row_data);
+                    } else {
+                        print(ref line);
+                    }
+                }
+            }
+
+            public bool output_line() {
                 _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
                 if (_timetaken >= aila2_filter.time_taken) {
                     if (!include && !exclude) {
-                        if (short_output) {
-                            print(ref row_data);
-                        } else {
-                            print(ref line);
-                        }
+                        return true;
                     }
                     if (exclude) {
                         foreach (string s in exclusion_filter) {
-                            if (current_line[(int)FieldPositions.uristem].Contains(s)) {
-                                return;
+                            if (line_matched(s)) {
+                                return false;
                             }
                         }
                         if (!include) {
-                            if (short_output) {
-                                print(ref row_data);
-                            } else {
-                                print(ref line);
-                            }
+                            return true;
                         }
                     }
                     if (include) {
                         foreach (string s in inclusion_filter) {
-                            if (current_line[(int)FieldPositions.uristem].Contains(s)) {
-                                if (short_output) {
-                                    print(ref row_data);
-                                } else {
-                                    print(ref line);
-                                }
+                            if (line_matched(s)) {
+                                return true;
                             }
                         }
+                        return false;
                     }
                 }
+                return false;
+            }
+
+            private bool line_matched(string s) {
+                switch (filter_type) {
+                    case "uri":
+                        if (current_line[(int)FieldPositions.uristem].Contains(s)) {
+                            return true;
+                        }
+                        break;
+                    case "param":
+                        if (current_line[(int)FieldPositions.uriquery].Contains(s)) {
+                            return true;
+                        }
+                        break;
+                    case "cip":
+                        if (current_line[(int)FieldPositions.ip].Contains(s)) {
+                            return true;
+                        }
+                        break;
+                    case "status":
+                        if (current_line[(int)FieldPositions.status].Contains(s)) {
+                            return true;
+                        }
+                        break;
+                }
+                return false;
             }
 
             public static void print(ref string line) {
