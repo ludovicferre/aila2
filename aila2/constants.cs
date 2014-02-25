@@ -47,6 +47,15 @@ namespace Symantec.CWoC {
 	        "time-taken"
         };
 
+        public enum HOURLY_TABLE {
+            _total,
+            _postevent,
+            _packageinfo,
+            _getpolicies,
+            _taskmgmt,
+            _invrulemgmt
+        };
+
 
         /******************************************************************************
          * Web-applications data (enum, match strings and JSON string)
@@ -56,30 +65,32 @@ namespace Symantec.CWoC {
 	        _atrs_ns_nscap,
 	        _atrs_ns,
 	        _atrs_resource,
-	        _atrs_ira,		// InventoryRuleAgent
+	        _atrs_irm,		// InventoryRuleAgent
 	        _atrs_packages,
 	        _atrs_swportal,
 	        _atrs_cta,		// ClientTaskAgent
 	        _atrs_cts,		// ClientTaskServer
 	        _atrs_tm,		// TaskManagement
 	        _atrs_cnsl,		// 6.5, 7.x Console
-	        _atrs,
+	        _atrs_ac,
+            _atrs_workflow,
+            _atrs,
 	        _other_vdir
         };
 
         public static readonly string [] atrs_iis_vdir = new string [] {
 	        "/altiris/ns/agent/",
-	        "/altiris/taskmanagement/",
-	        "/altiris/inventoryrulemanagement/",
 	        "/altiris/ns/nscap/",
 	        "/altiris/ns/",
+	        "/altiris/resource/",
+	        "/altiris/inventoryrulemanagement/",
 	        "/altiris/packageshare/",
 	        "/altiris/swportal/",
 	        "/altiris/clienttaskagent/",
 	        "/altiris/clienttaskserver/",
+	        "/altiris/taskmanagement/",
 	        "/altiris/console/",
             "/altiris/activitycenter/",
-	        "/altiris/resource/",
             "/altiris/workflow/",
 	        "/altiris",
 	        "other"
