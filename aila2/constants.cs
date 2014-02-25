@@ -49,8 +49,7 @@ namespace Symantec.CWoC {
 
 
         /******************************************************************************
-         * Altiris Virtual Directories enumeration
-         * This should allow us to gather stats on the altiris related uri details
+         * Web-applications data (enum, match strings and JSON string)
          ******************************************************************************/
         public enum ATRS_IIS_VDIR {
 	        _atrs_ns_agent,
@@ -68,9 +67,6 @@ namespace Symantec.CWoC {
 	        _other_vdir
         };
 
-        /******************************************************************************
-         * Reverse lookup for Altiris Virtual Directories
-         ******************************************************************************/
         public static readonly string [] atrs_iis_vdir = new string [] {
 	        "/altiris/ns/agent/",
 	        "/altiris/taskmanagement/",
@@ -89,9 +85,6 @@ namespace Symantec.CWoC {
 	        "other"
         };
 
-        /******************************************************************************
-         * Reverse lookup for Altiris Virtual Directories
-         ******************************************************************************/
         public static readonly string [] json_iis_vdir = new string [] {
 	        "NS Agent",	//  0
 	        "NSCap",
@@ -108,10 +101,67 @@ namespace Symantec.CWoC {
 	        "Others"
         };
 
+        /******************************************************************************
+         * Inventory Rule Management data (enum, match strings and JSON string)
+         ******************************************************************************/
+        public enum ATRS_IRM_PARAMS {
+            _atrs_irm_classhash,
+            _atrs_irm_rulesummary,
+            _atrs_irm_rules,
+            _atrs_irm_classrules,
+            _atrs_irm_other
+        }
+
+        public static readonly string[] atrs_irm_params = new string[] {
+            "datatype=dataclasshash",
+            "datatype=dataclassrulesummary",
+            "datatype=rules",
+            "datatype=dataclassrules"
+        };
+
+        public static readonly string[] json_irm_params = new string[] {
+            "DataClassHash",
+            "DCRuleSummary",
+            "Rules",
+            "DataclassRules",
+            "Other"
+        };
 
         /******************************************************************************
-         * Atiris Agent Http requests enumeration
-         * These are http request related to the Altiris Agent specifically
+         * Task Management data (enum, match strings and JSON string)
+         ******************************************************************************/
+        public enum ATRS_TASK_REQ {
+            _atrs_tm_execsql,
+            _atrs_tm_reportdata,
+            _atrs_tm_gettaskserver,
+            _atrs_tm_persistent,
+            _atrs_tm_gettaskver,
+            _atrs_tm_refreshts,
+            _atrs_tm_other
+        }
+
+        public static readonly string[] atrs_task_req = new string[] {
+            "clienttask/execsqlcommand.aspx",
+            "clienttask/reporttaskdata.aspx",
+            "ctagent/getclienttaskservers.aspx",
+            "ctagent/persistentsettings.aspx",
+            "clienttask/gettaskversion.aspx",
+            "clienttask/refreshtaskservers.aspx"
+        };
+
+        public static readonly string[] json_task_req = new string[] {
+            "ExecSQLCommand",
+            "ReportTaskData",
+            "GetTaskServer",
+            "PersistentSettings",
+            "GetTaskVersion",
+            "RefreshTaskServer",
+            "Other"
+        };
+
+
+        /******************************************************************************
+         * Altiris Agent data (enum, match strings and JSON string)
          ******************************************************************************/
         public enum ATRS_AGENT_REQ {
 	        _post_event_asp,
@@ -123,19 +173,6 @@ namespace Symantec.CWoC {
 	        _get_license_details,
             _get_license,
 	        _other_req
-        };
-
-        /******************************************************************************
-         * Reverse lookup for Altiris Agent Http requests
-         ******************************************************************************/
-        public static readonly string [] print_atrs_agent_req = new string [] {
-	        "Reg Client",
-	        "Get Policies",
-	        "Get Pkg Info",
-	        "Get Snapshot",
-	        "Post Event",
-	        "Get License",
-	        "Other"
         };
 
         public static readonly string [] json_agent_req = new string [] {
@@ -182,9 +219,6 @@ namespace Symantec.CWoC {
 	        _other_mime
         };
 
-        /******************************************************************************
-         * Reverse lookup for Http Mime types
-         ******************************************************************************/
         public static readonly string [] http_mime_type = new string []{
 	        "htm",
 	        "html",
@@ -204,7 +238,7 @@ namespace Symantec.CWoC {
         };
 
         /******************************************************************************
-         * IIS Return codes enumeration
+         * IIS Return codes
          ******************************************************************************/
         public enum IIS_STATUS_CODES {
 	        _iis_success,
@@ -213,9 +247,6 @@ namespace Symantec.CWoC {
 	        _iis_server_error
         };
 
-        /******************************************************************************
-         * Reverse lookup for IIS Return codes
-         ******************************************************************************/
         public static readonly string [] iis_status_code = new string [] {
 	        "Success  (1xx,2xx)",
 	        "Redirected   (3xx)",
@@ -231,20 +262,16 @@ namespace Symantec.CWoC {
         };
 
         /******************************************************************************
-         * IIS Win32 Return codes enumeration
+         * IIS Win32 Return codes
          ******************************************************************************/
         public enum IIS_WIN32_STATUS {
 	        _win32_success,
 	        _win32_other
         };
 
-        /******************************************************************************
-         * Reverse lookup for IIS Win32 Return codes
-         ******************************************************************************/
         public static readonly string[]  iis_win32_status = new string [] {
 	        "Win32 Success",
 	        "Win32 Failure"
         };
-
     }
 }
