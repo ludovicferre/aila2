@@ -259,10 +259,10 @@ namespace Symantec.CWoC {
         };
 
         public static readonly string [] iis_status_code = new string [] {
-	        "Success  (1xx,2xx)",
-	        "Redirected   (3xx)",
-	        "Client error (4xx)",
-	        "Server error (5xx)"
+	        "1xx,2xx Success",
+	        "3xx Redirected",
+	        "4xx Client error",
+	        "5xx Server error"
         };
 
         public static readonly string [] json_status_code = new string [] {
