@@ -738,7 +738,7 @@ Samples:
 
                 int i = results.IP_Handler.ip_hitters.Count;
                 output.AppendFormat("\n\t\t\"ip_hit_top\" : [\n");
-                output.AppendFormat("\t\t\t[\"Hit count\", \"IP Address\"],\n");
+                output.AppendFormat("\t\t\t[\"IP Address\", \"Hit count\"],\n");
 
                 for (int j = 1; j < 21; j++) {
 
