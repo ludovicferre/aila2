@@ -16,6 +16,8 @@
 		<h2>aila2 - Charts</h2>
 		<h3 id ="hourly_chart">Hourly hit counts</h3>
 		<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id ="ip_table">IP Hit - Top 20</h3>
+		<div id="ip_table_div" style="width: 600px; height: 300px;"></div>
 		<h3 id="webapp_chart">Web-app distribution</h3>
 		<div id="webapp_chart_div" style="width: 900px; height: 300px;"></div>
 		<h3 id="agent_chart">Altiris Agent Interfaces</h3>
@@ -67,6 +69,22 @@
 					hide("hourly_chart");
 					hide("hourly_chart_div");
 				}
+			    // IP TOP 20 HITTER
+			    if (typeof(result_json.stats.ip_hit_top) != "undefined") {
+			        var t = result_json.stats.ip_hit_top;
+			        if (arrayAllZero(t)) {
+				        hide("ip_table");
+				        hide("ip_table_div");
+			        } else {
+				        removeEmptyRows(t);
+			            var ip_top_data = new google.visualization.arrayToDataTable(result_json.stats.ip_hit_top);
+			            var ip_top_table = new google.visualization.Table(document.getElementById('ip_table_div'));
+			            ip_top_table.draw(ip_top_data, {showRowNumber: true});
+			        }
+			    } else {
+				        hide("ip_table");
+				        hide("ip_table_div");
+			    }
 				// ALTIRIS WEB-APPLICATIONS
 				if (typeof(result_json.stats.web_application) != "undefined") {
 					var t = result_json.stats.web_application;
