@@ -45,7 +45,7 @@ namespace Symantec.CWoC {
             E_INVALID_ARGS
         }
 
-        private static readonly string VERSION_MESSAGE = "aila2 version 1.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
+        private static readonly string VERSION_MESSAGE = "aila2 version 2.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
 
         #region static readonly string HELP_MESSAGE
         private static readonly string HELP_MESSAGE = @"

@@ -29,6 +29,18 @@ Options:
                         seconds. This only works if the IIS schema contains
                         the time-taken field.
 
+    --type <column>     The filter inclusion and / or exclusion string will be
+                        used against the specified column. If not specified we
+                        use the URI Stem. Here are the supported columns:
+                         ___________________________________________________
+                        | Column  | IIS field    |  Comment                 |
+                        |---------|--------------|--------------------------|
+                        | uri     | cs-uri-stem  |  The requested file path |
+                        | param   | cs-uri-query |  Request parameters      |
+                        | cip     | c-ip         |  Client IP address       |
+                        | status  | sc-status    |  IIS status code         |
+                         ---------------------------------------------------
+
     -i, --inclusion-filter ""filter string""
 
                         Filter the IIS log file to include all request that
@@ -121,7 +133,7 @@ Samples:
                 if (args.Length == 1) {
                     #region // Handle case when 1 argument alone is provided
                     if (args[0] == "-v" || args[0] == "--version") {
-                        Console.WriteLine("aila2-filter version 1.");
+                        Console.WriteLine("aila2-filter version 2.");
                         return 0;
                     }
                     Console.WriteLine(HELP_MESSAGE);
