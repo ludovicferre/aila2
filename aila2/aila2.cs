@@ -623,14 +623,16 @@ Samples:
                 output.Append("\t\t\"hourly\" : [\n");
                 output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Pkg Info\", \"Task Mgmt\", \"Inv. Rule Mgmt\"],\n");
                 for (int j = 0; j < 24; j++) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}],\n", 
-                        j.ToString(),
-                        results.HOURLY_hit_counter[j, 0].ToString(),
-                        results.HOURLY_hit_counter[j, 1].ToString(),
-                        results.HOURLY_hit_counter[j, 2].ToString(),
-                        results.HOURLY_hit_counter[j, 3].ToString(),
-                        results.HOURLY_hit_counter[j, 4].ToString(),
-                        results.HOURLY_hit_counter[j, 5].ToString());
+					if (results.HOURLY_hit_counter[j, 0] > 0) {
+						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}],\n", 
+							j.ToString(),
+							results.HOURLY_hit_counter[j, 0].ToString(),
+							results.HOURLY_hit_counter[j, 1].ToString(),
+							results.HOURLY_hit_counter[j, 2].ToString(),
+							results.HOURLY_hit_counter[j, 3].ToString(),
+							results.HOURLY_hit_counter[j, 4].ToString(),
+							results.HOURLY_hit_counter[j, 5].ToString());
+					}
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -640,7 +642,8 @@ Samples:
                 output.AppendFormat("\t\t\"mime_type\" : [\n");
                 output.AppendFormat("\t\t\t[\"Mime type\", \"Hit #\"],\n");
                 for (int j = 0; j < results.MIME_TYPE_hit_counter.Length; j++) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
+					if (results.MIME_TYPE_hit_counter[j] > 0)
+						output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.http_mime_type[j], results.MIME_TYPE_hit_counter[j].ToString());
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -652,8 +655,8 @@ Samples:
                     float avg = 0;
                     if (results.WEBAPP_Hit_counter[j, 1] > 0) {
                         avg = (float)results.WEBAPP_Hit_counter[j, 1] / (float)results.WEBAPP_Hit_counter[j, 0];
+						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                     }
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_iis_vdir[j], results.WEBAPP_Hit_counter[j, 0].ToString(), results.WEBAPP_Hit_counter[j, 1].ToString(), results.WEBAPP_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -662,66 +665,88 @@ Samples:
                 output.AppendFormat("\t\t\"http_status\" : [\n");
                 output.AppendFormat("\t\t\t[\"Http-status\", \"Hit #\"],\n");
                 for (int j = 0; j < 4; j++) {
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.iis_status_code[j], results.IIS_STATUS_hit_counter[j].ToString());
+					if (results.IIS_STATUS_hit_counter[j] > 0)
+						output.AppendFormat("\t\t\t[\"{0}\", {1}],\n", constants.iis_status_code[j], results.IIS_STATUS_hit_counter[j].ToString());
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.Append("\n\t\t],\n");
 
 
                 // AGENT INTERFACE STATS
-                output.AppendFormat("\t\t\"agent_interface\" : [\n");
-                output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+				bool print_agent_interface = false;
                 for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
-                    float avg = 0;
-                    if (results.AGENT_Hit_counter[j, 1] > 0) {
-                        // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
-                        avg = (float)results.AGENT_Hit_counter[j, 1] / (float)results.AGENT_Hit_counter[j, 0];
-                    }
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
-                }
+					if (results.AGENT_Hit_counter[j, 1] > 0) {
+						print_agent_interface = true;
+					}
+				}
 
-                output.Length = output.Length - 2; // Remove the last ",\n"
-                output.Append("\n\t\t],\n");
+				if (print_agent_interface) {
+					output.AppendFormat("\t\t\"agent_interface\" : [\n");
+					output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+					for (int j = 0; j < constants.atrs_agent_req.Length; j++) {
+						float avg = 0;
+						if (results.AGENT_Hit_counter[j, 1] > 0) {
+							// Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
+							avg = (float)results.AGENT_Hit_counter[j, 1] / (float)results.AGENT_Hit_counter[j, 0];
+							output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", constants.atrs_agent_req[j], results.AGENT_Hit_counter[j, 0].ToString(), results.AGENT_Hit_counter[j, 1].ToString(), results.AGENT_Hit_counter[j, 2].ToString(), FloatToDottedString(avg));
+						}
+					}
+					output.Length = output.Length - 2; // Remove the last ",\n"
+					output.Append("\n\t\t],\n");
+				}
 
                 // TASK MANAGEMENT INTERFACE STATS
-                output.AppendFormat("\t\t\"task_interface\" : [\n");
-                output.AppendFormat("\t\t\t[\"Task interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
-                for (int j = 0; j < constants.atrs_task_req.Length; j++) {
-                    float avg = 0;
-                    if (results.TASK_Hit_counter[j, 1] > 0) {
-                        avg = (float)results.TASK_Hit_counter[j, 1] / (float)results.TASK_Hit_counter[j, 0];
-                    }
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", 
-                        constants.json_task_req[j],
-                        results.TASK_Hit_counter[j, 0].ToString(),
-                        results.TASK_Hit_counter[j, 1].ToString(),
-                        results.TASK_Hit_counter[j, 2].ToString(),
-                        FloatToDottedString(avg));
-                }
-
-                output.Length = output.Length - 2; // Remove the last ",\n"
-                output.Append("\n\t\t],\n");
+				bool print_task_interface = false;
+				for (int j = 0; j < constants.atrs_task_req.Length; j++) {
+					if (results.TASK_Hit_counter[j, 1] > 0) {
+						print_task_interface = true;
+					}
+				}
+				if (print_task_interface) {
+					output.AppendFormat("\t\t\"task_interface\" : [\n");
+					output.AppendFormat("\t\t\t[\"Task interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+					for (int j = 0; j < constants.atrs_task_req.Length; j++) {
+						float avg = 0;
+						if (results.TASK_Hit_counter[j, 1] > 0) {
+							avg = (float)results.TASK_Hit_counter[j, 1] / (float)results.TASK_Hit_counter[j, 0];
+							output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n", 
+								constants.json_task_req[j],
+								results.TASK_Hit_counter[j, 0].ToString(),
+								results.TASK_Hit_counter[j, 1].ToString(),
+								results.TASK_Hit_counter[j, 2].ToString(),
+								FloatToDottedString(avg));
+						}
+					}
+					output.Length = output.Length - 2; // Remove the last ",\n"
+					output.Append("\n\t\t],\n");
+				}
 
                 // INVENTORY RULE MANAGEMENT PARAM STATS
-                output.AppendFormat("\t\t\"invrule_interface\" : [\n");
-                output.AppendFormat("\t\t\t[\"IRM AgentRuleData.ashx\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
-                for (int j = 0; j < constants.atrs_irm_params.Length; j++) {
-                    float avg = 0;
-                    if (results.IRM_Hit_counter[j, 1] > 0) {
-                        // Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
-                        avg = (float)results.IRM_Hit_counter[j, 1] / (float)results.IRM_Hit_counter[j, 0];
-                    }
-                    output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n",
-                        constants.json_irm_params[j],
-                        results.IRM_Hit_counter[j, 0].ToString(),
-                        results.IRM_Hit_counter[j, 1].ToString(),
-                        results.IRM_Hit_counter[j, 2].ToString(),
-                        FloatToDottedString(avg));
-                }
-
-                output.Length = output.Length - 2; // Remove the last ",\n"
-                output.Append("\n\t\t],");
-
+				bool print_irm_interface = false;
+				for (int j = 0; j < constants.atrs_irm_params.Length; j++) {
+					if (results.IRM_Hit_counter[j, 1] > 0) {
+						print_irm_interface = true;
+					}
+				}
+				if (print_irm_interface) {
+					output.AppendFormat("\t\t\"invrule_interface\" : [\n");
+					output.AppendFormat("\t\t\t[\"IRM AgentRuleData.ashx\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
+					for (int j = 0; j < constants.atrs_irm_params.Length; j++) {
+						float avg = 0;
+						if (results.IRM_Hit_counter[j, 1] > 0) {
+							// Console.WriteLine("Calculation = {0} / {1}...", results.WEBAPP_Hit_counter[j, 2], results.WEBAPP_Hit_counter[j, 1]);
+							avg = (float)results.IRM_Hit_counter[j, 1] / (float)results.IRM_Hit_counter[j, 0];
+							output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}],\n",
+								constants.json_irm_params[j],
+								results.IRM_Hit_counter[j, 0].ToString(),
+								results.IRM_Hit_counter[j, 1].ToString(),
+								results.IRM_Hit_counter[j, 2].ToString(),
+								FloatToDottedString(avg));
+						}
+					}
+					output.Length = output.Length - 2; // Remove the last ",\n"
+					output.Append("\n\t\t],");
+				}
 
                 // IP ADDRESS TOP 20 HITTERS
                 foreach (KeyValuePair<string, int> kvp in results.IP_Handler.ip_list) {
@@ -779,43 +804,6 @@ Samples:
     
     class constants {
 
-        /******************************************************************************
-         * IIS Log file schema constants
-         * This is the default schema for IIS W3C log files
-         ******************************************************************************/
-        public enum W3C_SCHEMA {
-	        _w3c_date,
-	        _w3c_time,
-	        _w3c_cs_method,
-	        _w3c_cs_uri,
-	        _w3c_cs_uri_stem,
-	        _w3c_cs_uri_query,
-	        _w3c_cs_username,
-	        _w3c_c_ip,
-	        _w3c_sc_status,
-	        _w3c_sc_sub_status,
-	        _w3c_sc_win32_status,
-	        _w3c_time_taken
-        };
-
-        /******************************************************************************
-         * These string are matching the above enumeration to check the current schema
-         ******************************************************************************/
-        public static readonly string [] w3c_schema_table = new string [] {
-	        "date",
-	        "time",
-	        "cs-method",
-	        "cs-uri",
-	        "cs-uri-stem",
-	        "cs-uri-query",
-	        "cs-username",
-	        "c-ip",
-	        "sc-status",
-	        "sc-substatus",
-	        "sc-win32-status",
-	        "time-taken"
-        };
-
         public enum HOURLY_TABLE {
             _total,
             _postevent,
@@ -825,21 +813,21 @@ Samples:
             _invrulemgmt
         };
 
-
         /******************************************************************************
          * Web-applications data (enum, match strings and JSON string)
          ******************************************************************************/
         public enum ATRS_IIS_VDIR {
 	        _atrs_ns_agent,
-	        _atrs_ns_nscap,
+	        _atrs_tm,		// TaskManagement
 	        _atrs_ns,
-	        _atrs_resource,
+			_atrs_ps,
 	        _atrs_irm,		// InventoryRuleAgent
+	        _atrs_resource,
+	        _atrs_ns_nscap,
 	        _atrs_packages,
 	        _atrs_swportal,
 	        _atrs_cta,		// ClientTaskAgent
 	        _atrs_cts,		// ClientTaskServer
-	        _atrs_tm,		// TaskManagement
 	        _atrs_cnsl,		// 6.5, 7.x Console
 	        _atrs_ac,
             _atrs_workflow,
@@ -849,16 +837,16 @@ Samples:
 
         public static readonly string [] atrs_iis_vdir = new string [] {
 	        "/altiris/ns/agent/",
-	        "/altiris/ns/nscap/",
+	        "/altiris/taskmanagement/",
 	        "/altiris/ns/",
 	        "/altiris/ps/",
-	        "/altiris/resource/",
 	        "/altiris/inventoryrulemanagement/",
+	        "/altiris/resource/",
+	        "/altiris/ns/nscap/",
 	        "/altiris/packageshare/",
 	        "/altiris/swportal/",
 	        "/altiris/clienttaskagent/",
 	        "/altiris/clienttaskserver/",
-	        "/altiris/taskmanagement/",
 	        "/altiris/console/",
             "/altiris/activitycenter/",
             "/altiris/workflow/",
@@ -866,21 +854,9 @@ Samples:
 	        "other"
         };
 
-        public static readonly string [] json_iis_vdir = new string [] { // Unused
-	        "NS Agent",	"NSCap", "NS", "Resource", "InvRuleAgent", "Packages", "SWPortal", "ClntTskAgnt", "ClntTskSvr", "TaskMgmt", "Console", "Altiris", "Others"
-		};
-
         /******************************************************************************
          * Inventory Rule Management data (enum, match strings and JSON string)
          ******************************************************************************/
-        public enum ATRS_IRM_PARAMS {
-            _atrs_irm_classhash,
-            _atrs_irm_rulesummary,
-            _atrs_irm_rules,
-            _atrs_irm_classrules,
-            _atrs_irm_other
-        }
-
         public static readonly string[] atrs_irm_params = new string[] {
             "datatype=dataclasshash",
             "datatype=dataclassrulesummary",
@@ -899,16 +875,6 @@ Samples:
         /******************************************************************************
          * Task Management data (enum, match strings and JSON string)
          ******************************************************************************/
-        public enum ATRS_TASK_REQ {
-            _atrs_tm_execsql,
-            _atrs_tm_reportdata,
-            _atrs_tm_gettaskserver,
-            _atrs_tm_persistent,
-            _atrs_tm_gettaskver,
-            _atrs_tm_refreshts,
-            _atrs_tm_other
-        }
-
         public static readonly string[] atrs_task_req = new string[] {
             "clienttask/execsqlcommand.aspx",
             "clienttask/reporttaskdata.aspx",
@@ -928,7 +894,6 @@ Samples:
             "Other"
         };
 
-
         /******************************************************************************
          * Altiris Agent data (enum, match strings and JSON string)
          ******************************************************************************/
@@ -942,16 +907,6 @@ Samples:
 	        _get_license_details,
             _get_license,
 	        _other_req
-        };
-
-        public static readonly string [] json_agent_req = new string [] {
-	        "Create Res.",
-	        "Get Policies",
-	        "Get Pkg Info",
-	        "Get Snapshot",
-	        "Post Event",
-	        "Get License",
-	        "Other"
         };
 
         public static readonly string [] atrs_agent_req = new string [] {
@@ -968,42 +923,14 @@ Samples:
 
         /******************************************************************************
          * Http Mime types enumeration
-         * Standard html mime types found in a Notificatoin Server
+         * Standard html mime types found in a Notification Server
          ******************************************************************************/
-        public enum HTTP_MIME_TYPE {
-	        _htm,
-	        _html,
-	        _asp,
-	        _aspx,
-	        _asmx,
-	        _ascx,
-	        _axd,
-	        _ashx,
-	        _xml,
-            _css,
-            _js,
-            _gif,
-            _png,
-            _jpg,
-	        _other_mime
-        };
-
         public static readonly string [] http_mime_type = new string []{
-	        "htm",
-	        "html",
-	        "asp",
-	        "aspx",
-	        "asmx",
-	        "ascx",
-	        "axd",
-	        "ashx",
+	        "htm", "html", "css", "js", "gif", "png", "jpg",	// Standard html mimes
+	        "asp", "aspx", "asmx", "ascx", "axd", "ashx",		// Microsoft web-mimes
 	        "xml",
-            "css",
-            "js",
-            "gif",
-            "png",
-            "jpg",
-	        "Other"
+			"dmg", "exe", "msi", "msp", "vbs", "pl", "sh", "cmd",	// Installation & scripts
+			"Other"
         };
 
         /******************************************************************************
@@ -1023,24 +950,12 @@ Samples:
 	        "5xx Server error"
         };
 
-        public static readonly string [] json_status_code = new string [] {
-	        "Success",
-	        "Redirected",
-	        "Client error",
-	        "Server error"
-        };
-
         /******************************************************************************
          * IIS Win32 Return codes
          ******************************************************************************/
         public enum IIS_WIN32_STATUS {
 	        _win32_success,
 	        _win32_other
-        };
-
-        public static readonly string[]  iis_win32_status = new string [] {
-	        "Win32 Success",
-	        "Win32 Failure"
         };
     }
 }
