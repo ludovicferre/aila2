@@ -45,7 +45,7 @@ namespace Symantec.CWoC {
             E_INVALID_ARGS
         }
 
-        private static readonly string VERSION_MESSAGE = "aila2 version 2.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
+        private static readonly string VERSION_MESSAGE = "aila2 version 3.\n\nBuilt for .Net 2.0, brought to you by {CWoC}.\n";
 
         #region static readonly string HELP_MESSAGE
         private static readonly string HELP_MESSAGE = @"
@@ -563,6 +563,8 @@ Samples:
                     results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._packageinfo]++;
                 } else if (i == (int)constants.ATRS_AGENT_REQ._get_client_policy) {
                     results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._getpolicies]++;
+                } else if (i == (int)constants.ATRS_AGENT_REQ._connection_test) {
+                    results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._connection_test]++;
                 }
                 return 0;
             }
@@ -621,18 +623,20 @@ Samples:
 
                 // HOURLY STATS
                 output.Append("\t\t\"hourly\" : [\n");
-                output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Pkg Info\", \"Task Mgmt\", \"Inv. Rule Mgmt\"],\n");
+                output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Pkg Info\", \"Speed test\", \"Task Mgmt\", \"Inv. Rule Mgmt\"],\n");
                 for (int j = 0; j < 24; j++) {
-					if (results.HOURLY_hit_counter[j, 0] > 0) {
-						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}],\n", 
+//					if (results.HOURLY_hit_counter[j, 0] > 0) {
+						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}, {7}],\n", 
 							j.ToString(),
 							results.HOURLY_hit_counter[j, 0].ToString(),
 							results.HOURLY_hit_counter[j, 1].ToString(),
 							results.HOURLY_hit_counter[j, 2].ToString(),
 							results.HOURLY_hit_counter[j, 3].ToString(),
 							results.HOURLY_hit_counter[j, 4].ToString(),
-							results.HOURLY_hit_counter[j, 5].ToString());
-					}
+							results.HOURLY_hit_counter[j, 5].ToString(),
+							results.HOURLY_hit_counter[j, 6].ToString()
+						);
+//					}
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -679,7 +683,6 @@ Samples:
 						print_agent_interface = true;
 					}
 				}
-
 				if (print_agent_interface) {
 					output.AppendFormat("\t\t\"agent_interface\" : [\n");
 					output.AppendFormat("\t\t\t[\"Agent interface\", \"Hit #\", \"Sum(time-taken)\", \"Max(time-taken)\", \"Avg(time-taken)\"],\n");
@@ -809,6 +812,7 @@ Samples:
             _postevent,
             _packageinfo,
             _getpolicies,
+			_connection_test,
             _taskmgmt,
             _invrulemgmt
         };
@@ -906,6 +910,7 @@ Samples:
 	        _create_resource,
 	        _get_license_details,
             _get_license,
+			_connection_test,
 	        _other_req
         };
 
@@ -918,6 +923,7 @@ Samples:
 	        "createresource.aspx",
 	        "getlicense.asmx",
             "getlicensedetails.aspx",
+			"connectiontest.asp",
 	        "other"
         };
 
