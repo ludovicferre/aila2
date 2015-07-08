@@ -299,21 +299,35 @@
             }
 		}
 
+		var stacked = false;
 		function draw_stacked() {
 			if (typeof(result_json.stats.hourly) != "undefined") {
-				var table = deep_copy(result_json.stats.hourly);
-				// Reformat the data to fit into an area chart - stacked
-				table[0][1] = "Other";
-				for (var i = 1; i < table.length; i++) {
-					var other = table [i][1] - table [i][2]- table [i][3] - table [i][4] - table [i][5]- table [i][6] - table [i][7];
-					table[i][1] = other;
+				if (!stacked) {
+					var table = deep_copy(result_json.stats.hourly);
+					// Reformat the data to fit into an area chart - stacked
+					table[0][1] = "Other";
+					for (var i = 1; i < table.length; i++) {
+						var other = table [i][1] - table [i][2]- table [i][3] - table [i][4] - table [i][5]- table [i][6] - table [i][7];
+						table[i][1] = other;
+					}
+
+					var data_hourly = google.visualization.arrayToDataTable(table);
+					var options_hourly = {hAxis: {title: 'Hour'}, isStacked: true};
+
+					var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_chart_div'));
+					chart_hourly.draw(data_hourly, options_hourly);
+					stacked = true;
+				} else {
+					var table = deep_copy(result_json.stats.hourly);
+					var data_hourly = google.visualization.arrayToDataTable(table);
+					var options_hourly = {hAxis: {title: 'Hour'}};
+					var chart_hourly = new google.visualization.LineChart(document.getElementById('hourly_chart_div'));
+					chart_hourly.draw(data_hourly, options_hourly);
+					stacked = false;
 				}
-
-				var data_hourly = google.visualization.arrayToDataTable(table);
-				var options_hourly = {hAxis: {title: 'Hour'}, isStacked: true};
-
-				var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_chart_div'));
-				chart_hourly.draw(data_hourly, options_hourly);
+			} else {
+				hide("hourly_chart");
+				hide("hourly_chart_div");
 			}
 		}
 	</script>
