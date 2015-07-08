@@ -28,6 +28,7 @@
     </div>
 		<h2>aila2 - Charts</h2>
 		<h3 id ="hourly_chart">Hourly hit counts</h3>
+			<a onclick="draw_stacked();" href="#">Stacked view</a>
 		<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
 		<h3 id ="ip_table">Ip hit - top 20</h3>
 		<div id="ip_table_div" style="width: 600px; height: 300px;"></div>
@@ -297,5 +298,23 @@
                 hide("mime_chart_div");
             }
 		}
-    </script>
+
+		function draw_stacked() {
+			if (typeof(result_json.stats.hourly) != "undefined") {
+				var table = deep_copy(result_json.stats.hourly);
+				// Reformat the data to fit into an area chart - stacked
+				table[0][1] = "Other";
+				for (var i = 1; i < table.length; i++) {
+					var other = table [i][1] - table [i][2]- table [i][3] - table [i][4] - table [i][5]- table [i][6] - table [i][7];
+					table[i][1] = other;
+				}
+
+				var data_hourly = google.visualization.arrayToDataTable(table);
+				var options_hourly = {hAxis: {title: 'Hour'}, isStacked: true};
+
+				var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_chart_div'));
+				chart_hourly.draw(data_hourly, options_hourly);
+			}
+		}
+	</script>
 </html>
