@@ -900,8 +900,8 @@ Samples:
         public enum ATRS_AGENT_REQ {
 	        _post_event_asp,
 	        _post_event_aspx,
-	        _get_pkg_info,
             _get_client_policy,
+	        _get_pkg_info,
 	        _get_pkg_snapshot,
 	        _create_resource,
 	        _get_license_details,
