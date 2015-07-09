@@ -150,9 +150,8 @@
 			var data_hourly = google.visualization.arrayToDataTable(table);
 			var options_hourly = {hAxis: {title: 'Hour'}, isStacked: true};
 
-			var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_chart_div'));
+			var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_chart_div' + String(file_index)));
 			chart_hourly.draw(data_hourly, options_hourly);
-
 
 			file_index++;
 			if (file_index < file_list.length) {
