@@ -530,7 +530,7 @@ Samples:
                 if (i == (int) constants.ATRS_IIS_VDIR._atrs_ns_agent) {
                     // We are inside the Altiris-NS-Agent web-app. Do further analysis.
                     Analyze_NSAgent(ref uri);
-                } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_tm) {
+                } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_tm || i == (int) constants.ATRS_IIS_VDIR._atrs_cts) {
                     Analyze_TaskMgmt(ref uri);
                 } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_irm) {
                     Analyze_IRM(ref param);
@@ -579,7 +579,7 @@ Samples:
                         if (results.TASK_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
                             results.TASK_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
                         break;
-                    }
+					}
                 }
                 // Add to hourly accounting
                 results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._taskmgmt]++;
@@ -880,24 +880,49 @@ Samples:
          * Task Management data (enum, match strings and JSON string)
          ******************************************************************************/
         public static readonly string[] atrs_task_req = new string[] {
-            "clienttask/execsqlcommand.aspx",
-            "clienttask/reporttaskdata.aspx",
-            "ctagent/getclienttaskservers.aspx",
-            "ctagent/persistentsettings.aspx",
-            "clienttask/gettaskversion.aspx",
-            "clienttask/refreshtaskservers.aspx"
+			"clienttaskserver/gettaskitems.aspx",
+			"clienttaskserver/gettasks.aspx",
+			"clienttaskserver/postnotification.aspx",
+			"clienttaskserver/poststatus.aspx",
+			"clienttaskserver/register.aspx",
+			"clienttaskserver/getcomputercount.aspx",
+			"clienttaskserver/getserverstatus.aspx",
+
+			"clienttask/reporttaskdata.aspx",
+			"clienttask/authenticate.aspx",
+			"clienttask/gettaskversion.aspx",
+			"clienttask/refreshtaskservers.aspx",
+			"clienttask/registertaskserver.aspx",
+			"clienttask/getclientnetworkinformation.aspx",
+			"clienttask/exectsmethod.aspx",
+
+			"ctagent/getclienttaskservers.aspx",
+			"ctagent/persistentsettings.aspx"
         };
 
         public static readonly string[] json_task_req = new string[] {
-            "ExecSQLCommand",
-            "ReportTaskData",
-            "GetTaskServer",
-            "PersistentSettings",
-            "GetTaskVersion",
-            "RefreshTaskServer",
+			"clienttaskserver/gettaskitems.aspx",
+			"clienttaskserver/gettasks.aspx",
+			"clienttaskserver/postnotification.aspx",
+			"clienttaskserver/poststatus.aspx",
+			"clienttaskserver/register.aspx",
+			"clienttaskserver/getcomputercount.aspx",
+			"clienttaskserver/getserverstatus.aspx",
+
+			"clienttask/reporttaskdata.aspx",
+			"clienttask/authenticate.aspx",
+			"clienttask/gettaskversion.aspx",
+			"clienttask/refreshtaskservers.aspx",
+			"clienttask/registertaskserver.aspx",
+			"clienttask/getclientnetworkinformation.aspx",
+			"clienttask/exectsmethod.aspx",
+
+			"ctagent/getclienttaskservers.aspx",
+			"ctagent/persistentsettings.aspx",
+
             "Other"
         };
-
+		
         /******************************************************************************
          * Altiris Agent data (enum, match strings and JSON string)
          ******************************************************************************/
@@ -909,22 +934,32 @@ Samples:
 	        _get_pkg_snapshot,
 	        _create_resource,
 	        _get_license_details,
-            _get_license,
 			_connection_test,
+			_get_server_cert,
+			_get_site_server_info,
+			_agent_download,
+			_create_ext_package,
+			_get_client_cert,
+			_get_client_cert_mig,
 	        _other_req
         };
 
         public static readonly string [] atrs_agent_req = new string [] {
-	        "postevent.asp",
-	        "postevent.aspx",
-	        "getpackageinfo.aspx",
-	        "getclientpolicies.aspx",
-	        "getpackagesnapshot.aspx",
-	        "createresource.aspx",
-	        "getlicense.asmx",
-            "getlicensedetails.aspx",
+			"postevent.asp",
+			"postevent.aspx",
+			"getclientpolicies.aspx",
+			"getpackageinfo.aspx",
+			"getpackagesnapshot.aspx",
+			"createresource.aspx",
+			"getlicensedetails.aspx",
 			"connectiontest.asp",
-	        "other"
+			"getservercertificate.aspx",
+			"getsiteserverinfo.aspx",
+			"altirisagentdownload.aspx",
+			"createexternalpackage.aspx",
+			"getclientcertificate.aspx",
+			"getclientcertificatemig.aspx",
+			"other"
         };
 
         /******************************************************************************
