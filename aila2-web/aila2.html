@@ -13,6 +13,7 @@
         <a href='./' class='submenu'>Home</a>
         <a href='#top' class='submenu'>Top</a>
         <a href='#hourly_chart' class='submenu'>Hourly chart</a>
+        <a href='#hourly_rxtx_chart' class='submenu'>Hourly RX-TX chart</a>
         <a href='#ip_table' class='submenu'>Ip hit - top 20</a>
         <a href='#webapp_chart' class='submenu'>Web-app chart</a>
         <a href='#agent_chart' class='submenu'>NS-Agent chart</a>
@@ -29,6 +30,8 @@
 		<h2>aila2 - Charts</h2>
 		<h3 id ="hourly_chart">Hourly hit counts</h3>
 		<div id="hourly_chart_div" style="width: 900px; height: 300px;"></div>
+		<h3 id ="hourly_rxtx_chart">Hourly RX-TX counts</h3>
+		<div id="hourly_rxtx_chart_div" style="width: 900px; height: 300px;"></div>
 		<h3 id ="ip_table">Ip hit - top 20</h3>
 		<div id="ip_table_div" style="width: 600px; height: 300px;"></div>
 		<h3 id="webapp_chart">Web-app distribution</h3>
@@ -116,6 +119,17 @@
 			} else {
 			    hide("hourly_chart");
 			    hide("hourly_chart_div");
+			}
+			// HOURLY RXTX CHART
+			if (typeof(result_json.stats.hourly_rxtx) != "undefined") {
+				var table = deep_copy(result_json.stats.hourly_rxtx);
+				var data_hourly = google.visualization.arrayToDataTable(table);
+				var options_hourly = {hAxis: {title: 'Hour'}, isStacked: true};
+				var chart_hourly = new google.visualization.AreaChart(document.getElementById('hourly_rxtx_chart_div'));
+				chart_hourly.draw(data_hourly, options_hourly);
+			} else {
+				hide("hourly_rxtx_chart");
+				hide("hourly_rxtx_chart_div");
 			}
 			// IP TOP 20 HITTER
 			if (typeof(result_json.stats.ip_hit_top) != "undefined") {
