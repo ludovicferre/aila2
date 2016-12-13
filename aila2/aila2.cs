@@ -197,15 +197,24 @@ Samples:
             public long[,] AGENT_Hit_counter;
             public long[,] TASK_Hit_counter;
             public long[,] IRM_Hit_counter;
+			
+			public long RX_BYTES; //Client to server bytes count (receive by server -> RX_BYTES)
+			public long TX_BYTES; // Server to client bytes count (sent by server -> TX_BYTES)
+			
 
-            public int[,] HOURLY_hit_counter;
+            public long[,] HOURLY_hit_counter;
+            public long[,] HOURLY_rxtx_counter;
 
             public IpHitLists IP_Handler;
 
             public ResultSet() {
                 LineCount = DataLines = SchemaDef = 0;
 
-                HOURLY_hit_counter = new int[24, 10]; // Total, PostEvent, PkgInfo, GetPolicies, TaskManagement, InventoryRuleManagement
+                HOURLY_hit_counter = new long[24, 10]; // Total, PostEvent, PkgInfo, GetPolicies, TaskManagement, InventoryRuleManagement
+                HOURLY_rxtx_counter = new long[24, 10]; // RX Bytes, TX Bytes
+				
+				RX_BYTES = 0;
+				TX_BYTES = 0;
 
                 IIS_STATUS_hit_counter = new int[10];
                 IIS_SUB_STATUS_hit_counter = new int[10];
@@ -246,11 +255,11 @@ Samples:
         }
 
         public static readonly string[] SupportedFields = new string[] {
-            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken"
+            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken", "cs-bytes", "sc-bytes"
         };
 
         public enum FieldPositions {
-            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken
+            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken, rx_bytes, tx_bytes
         }
 
         class SchemaParser {
@@ -260,7 +269,6 @@ Samples:
 
             public SchemaParser() {
                 current_schema_string = "";
-                // Assume a max 30 distinct fields are select, safe enough?
                 field_positions = new List<int>();
                 ready = false;
             }
@@ -340,6 +348,8 @@ Samples:
             private long _win32status;
             private string md5_hash;
             private string filename;
+			private long _txbytes;
+			private long _rxbytes;
 
             public LogAnalyzer(CLIConfig c) {
                 current_line = new string[32];
@@ -462,7 +472,17 @@ Samples:
                 _hour = Convert.ToInt32(current_line[(int)FieldPositions.time].Substring(0, 2));
                 _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
                 _status = Convert.ToInt64(current_line[(int)FieldPositions.status]);
+				
+				_rxbytes = Convert.ToInt64(current_line[(int)FieldPositions.rx_bytes]);
+				_txbytes = Convert.ToInt64(current_line[(int)FieldPositions.tx_bytes]);
 
+				results.RX_BYTES += _rxbytes;
+				results.TX_BYTES += _txbytes;
+				
+				results.HOURLY_rxtx_counter[_hour, 0] += _rxbytes;
+				results.HOURLY_rxtx_counter[_hour, 1] += _txbytes;
+
+				
                 if (_status < 300) {
                     // HTTP 20x
                     results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_success]++;
@@ -483,6 +503,7 @@ Samples:
                 Logger.log_evt(log_levels.debugging, "Running analysis - part I (hourly hits) ...");
                 // Global hourly stats
                 results.HOURLY_hit_counter[_hour, 0]++;
+				
 
                 // Analyse mime types
                 Logger.log_evt(log_levels.debugging, "Running analysis - part II (mime type) ...");
@@ -619,24 +640,37 @@ Samples:
                 output.AppendFormat("{{\n\t\"file\" : \"{0}\",\n", filename);
                 output.AppendFormat("\t\"hash\" : \"{0}\",\n", md5_hash);
                 output.AppendFormat("\t\"linecount\" : {0},\n", results.DataLines.ToString());
+				output.AppendFormat("\t\"rx_bytes\" : {0}, \n", results.RX_BYTES.ToString());
+				output.AppendFormat("\t\"tx_bytes\" : {0}, \n", results.TX_BYTES.ToString());
                 output.Append("\t\"stats\" : {\n");
 
                 // HOURLY STATS
                 output.Append("\t\t\"hourly\" : [\n");
                 output.Append("\t\t\t[\"Hour\", \"Total hit #\", \"Post Event\", \"Get Client Policy\", \"Get Pkg Info\", \"Speed test\", \"Task Mgmt\", \"Inv. Rule Mgmt\"],\n");
                 for (int j = 0; j < 24; j++) {
-//					if (results.HOURLY_hit_counter[j, 0] > 0) {
 						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}, {3}, {4}, {5}, {6}, {7}],\n", 
 							j.ToString(),
-							results.HOURLY_hit_counter[j, 0].ToString(),
-							results.HOURLY_hit_counter[j, 1].ToString(),
-							results.HOURLY_hit_counter[j, 2].ToString(),
-							results.HOURLY_hit_counter[j, 3].ToString(),
-							results.HOURLY_hit_counter[j, 4].ToString(),
-							results.HOURLY_hit_counter[j, 5].ToString(),
-							results.HOURLY_hit_counter[j, 6].ToString()
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._total].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._postevent].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._packageinfo].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._getpolicies].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._connection_test].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._taskmgmt].ToString(),
+							results.HOURLY_hit_counter[j, (long) constants.HOURLY_TABLE._invrulemgmt].ToString()
 						);
-//					}
+                }
+                output.Length = output.Length - 2; // Remove the last ",\n"
+                output.AppendLine("\n\t\t],");
+
+                // HOURLY RXTX STATS
+                output.Append("\t\t\"hourly_rxtx\" : [\n");
+                output.Append("\t\t\t[\"Hour\", \"RX Bytes\", \"TX Bytes\"],\n");
+                for (int j = 0; j < 24; j++) {
+						output.AppendFormat("\t\t\t[\"{0}\", {1}, {2}],\n", 
+							j.ToString(),
+							results.HOURLY_rxtx_counter[j, 0].ToString(),
+							results.HOURLY_rxtx_counter[j, 1].ToString()
+						);
                 }
                 output.Length = output.Length - 2; // Remove the last ",\n"
                 output.AppendLine("\n\t\t],");
@@ -814,7 +848,9 @@ Samples:
             _getpolicies,
 			_connection_test,
             _taskmgmt,
-            _invrulemgmt
+            _invrulemgmt,
+			_rxbytes,
+			_txbytes
         };
 
         /******************************************************************************
@@ -829,6 +865,7 @@ Samples:
 	        _atrs_resource,
 	        _atrs_ns_nscap,
 	        _atrs_packages,
+	        _atrs_ps_share,
 	        _atrs_swportal,
 	        _atrs_cta,		// ClientTaskAgent
 	        _atrs_cts,		// ClientTaskServer
@@ -848,6 +885,7 @@ Samples:
 	        "/altiris/resource/",
 	        "/altiris/ns/nscap/",
 	        "/altiris/packageshare/",
+	        "/altiris/ps/share",
 	        "/altiris/swportal/",
 	        "/altiris/clienttaskagent/",
 	        "/altiris/clienttaskserver/",
