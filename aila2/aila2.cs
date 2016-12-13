@@ -255,21 +255,17 @@ Samples:
         }
 
         public static readonly string[] SupportedFields = new string[] {
-            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "time-taken", "cs-bytes", "sc-bytes"
+            "date", "time", "cs-method", "cs-uri-stem", "cs-uri-query", "cs-username", "c-ip", "sc-status", "sc-substatus", "sc-win32-status", "cs-bytes", "sc-bytes", "time-taken"
         };
-
-        public enum FieldPositions {
-            date = 0, time, method, uristem, uriquery, username, ip, status, substatus, win32status, timetaken, rx_bytes, tx_bytes
-        }
 
         class SchemaParser {
             public string current_schema_string;
-            public List<int> field_positions;
+			public Dictionary<string, int> fields;
             public bool ready;
 
             public SchemaParser() {
                 current_schema_string = "";
-                field_positions = new List<int>();
+				fields = new Dictionary<string, int>();
                 ready = false;
             }
 
@@ -278,17 +274,17 @@ Samples:
 
                 if (schema != current_schema_string) {
                     current_schema_string = schema;
-                    field_positions.Clear();
+                    fields.Clear();
 
                     Logger.log_evt(log_levels.verbose, "Row Schema = " + current_schema_string);
 
-                    string[] fields = schema.Split(' ');
+                    string[] _fields = schema.Split(' ');
                     int l = 0;
-                    foreach (string f in fields) {
+                    foreach (string f in _fields) {
                         int i = 0;
                         foreach (string s in SupportedFields) {
                             if (s == f) {
-                                field_positions.Add(l);
+								fields.Add(s, l);
                                 Logger.log_evt(log_levels.debugging, string.Format("We have a match for string {0} at position {1}.", s, l.ToString()));
                                 break;
                             }
@@ -296,13 +292,10 @@ Samples:
                         }
                         l++;
                     }
-                    int j = 0;
-                    foreach (int k in field_positions) {
-                        Logger.log_evt(log_levels.debugging, String.Format("{0}-{1}: {2}", j.ToString(), k.ToString(), SupportedFields[j]));
-                        j++;
-                    }
-
-                    if (field_positions.Count > 0)
+					foreach (KeyValuePair<string, int> kvp in fields) {
+						Logger.log_evt(log_levels.debugging, string.Format("{0} : {1}", kvp.Key, kvp.Value.ToString()));
+					}
+                    if (fields.Count > 0)
                         ready = true;
                     return 1;
                 } else {
@@ -395,7 +388,7 @@ Samples:
                         while (r.Peek() >= 0) {
                             line = r.ReadLine();
                             Logger.log_evt(log_levels.debugging, string.Format("Parsing line below ###\n", line));
-                            AnalyzeLine(ref line);
+                            AnalyzeLine(line);
                             results.LineCount++;
 
                             if (++i > 999) {
@@ -427,7 +420,7 @@ Samples:
                 }
                 Logger.log_evt(log_levels.information, string.Format("Parsing line below :: {0}", line));
                 try {
-                    AnalyzeLine(ref line);
+                    AnalyzeLine(line);
                 } catch (Exception e) {
                     Console.Error.WriteLine("Error! Could not parse the following line:\n{0}.", line);
                     Console.Error.WriteLine(e.Message);
@@ -437,7 +430,7 @@ Samples:
                 return false;
             }
 
-            private void AnalyzeLine(ref string line) {
+            private void AnalyzeLine(string line) {
                 line = line.ToLower();
                 Logger.log_evt(log_levels.debugging, "Starting detailed line analysis...");
                 if (line.StartsWith("#")) {
@@ -456,25 +449,36 @@ Samples:
 
                 results.DataLines++;
                 // Tokenize the current line
-                string[] row_data = line.ToLower().Split(' ');
-                int i = 0;
-                current_line.Initialize();
 
-                Logger.log_evt(log_levels.debugging, "Loading line data into storage array...");
-                foreach (int j in schema.field_positions) {
-                    current_line[i] = row_data[j];
-                    if (CLIConfig.log_level == log_levels.debugging)
-                        Console.WriteLine("{0} ::{1}={2} ", i.ToString(), SupportedFields[i], current_line[i]);
-                    i++;
-                }
+				current_line = line.ToLower().Split(' ');
 
-                // Convert the values from string to in now
-                _hour = Convert.ToInt32(current_line[(int)FieldPositions.time].Substring(0, 2));
-                _timetaken = Convert.ToInt32(current_line[(int)FieldPositions.timetaken]);
-                _status = Convert.ToInt64(current_line[(int)FieldPositions.status]);
+                // Convert the values from string to in now				
+				if (schema.fields.ContainsKey("time")) {
+					_hour = Convert.ToInt32(current_line[schema.fields["time"]].Substring(0, 2));
+				} else {
+					_hour = 0;
+				}
+				if (schema.fields.ContainsKey("time-taken")) {
+					_timetaken = Convert.ToInt32(current_line[(int) schema.fields["time-taken"]]);
+				} else {
+					_timetaken = 0;
+				}
+				if (schema.fields.ContainsKey("sc-status")) {
+					_status = Convert.ToInt64(current_line[schema.fields["sc-status"]]);
+				} else {
+					_status = 0;
+				}
 				
-				_rxbytes = Convert.ToInt64(current_line[(int)FieldPositions.rx_bytes]);
-				_txbytes = Convert.ToInt64(current_line[(int)FieldPositions.tx_bytes]);
+				if (schema.fields.ContainsKey("cs-bytes")) {
+					_rxbytes = Convert.ToInt64(current_line[schema.fields["cs-bytes"]]);
+				} else {
+					_rxbytes = 0;
+				}
+				if (schema.fields.ContainsKey("sc-bytes")) {
+					_txbytes = Convert.ToInt64(current_line[schema.fields["sc-bytes"]]);
+				} else {
+					_txbytes = 0;
+				}
 
 				results.RX_BYTES += _rxbytes;
 				results.TX_BYTES += _txbytes;
@@ -497,31 +501,50 @@ Samples:
                     results.IIS_STATUS_hit_counter[(int) constants.IIS_STATUS_CODES._iis_server_error]++;
                 }
 
-                _substatus = Convert.ToInt64(current_line[(int)FieldPositions.substatus]);
-                _win32status = Convert.ToInt64(current_line[(int)FieldPositions.win32status]);
+				if (schema.fields.ContainsKey("sc-substatus")) {
+					_substatus = Convert.ToInt64(current_line[schema.fields["sc-substatus"]]);
+				} else {
+					Logger.log_evt(log_levels.debugging, "Field sc-substatus is missing!!!");
+					_substatus = 0;
+				}
+				
+				if (schema.fields.ContainsKey("sc-win32-status")) {
+					_win32status = Convert.ToInt64(current_line[schema.fields["sc-win32-status"]]);
+				} else {
+					Logger.log_evt(log_levels.debugging, "Field sc-win32-status is missing!!!");
+					_win32status = 0;
+				}
 
                 Logger.log_evt(log_levels.debugging, "Running analysis - part I (hourly hits) ...");
+
                 // Global hourly stats
                 results.HOURLY_hit_counter[_hour, 0]++;
-				
 
                 // Analyse mime types
                 Logger.log_evt(log_levels.debugging, "Running analysis - part II (mime type) ...");
-                Analyze_MimeTypes(ref current_line[(int)FieldPositions.uristem]);
+				if (schema.fields.ContainsKey("cs-uri-stem")) {
+					Analyze_MimeTypes(current_line[schema.fields["cs-uri-stem"]]);
+				} else {
+					Logger.log_evt(log_levels.debugging, "Field cs-uri-stem is missing!!!");
+				}
 
                 // Analyze web-application
                 Logger.log_evt(log_levels.debugging, "Running analysis - part III (web-apps) ...");
-                Analyze_WebApp(ref current_line[(int)FieldPositions.uristem], ref current_line[(int)FieldPositions.uriquery]);
+                if (schema.fields.ContainsKey("cs-uri-stem") && schema.fields.ContainsKey("cs-uri-query")) {
+					Analyze_WebApp(current_line[schema.fields["cs-uri-stem"]], current_line[schema.fields["cs-uri-query"]]);
+				}
 
-                string c_ip = current_line[(int)FieldPositions.ip];
-                if (results.IP_Handler.ip_list .ContainsKey(c_ip)) {
-                    results.IP_Handler.ip_list[c_ip]++;
-                } else {
-                    results.IP_Handler.ip_list.Add(c_ip, 1);
-                }
+				if (schema.fields.ContainsKey("c-ip")) {
+					string c_ip = current_line[schema.fields["c-ip"]];
+					if (results.IP_Handler.ip_list.ContainsKey(c_ip)) {
+						results.IP_Handler.ip_list[c_ip]++;
+					} else {
+						results.IP_Handler.ip_list.Add(c_ip, 1);
+					}
+				}
             }
 
-            private int Analyze_MimeTypes(ref string uri) {
+            private int Analyze_MimeTypes(string uri) {
                 int i = 0;
                 foreach (string type in constants.http_mime_type) {
                     Logger.log_evt(log_levels.debugging, string.Format("Checking mime-types {0}", type));
@@ -537,7 +560,7 @@ Samples:
                 return i - 1;
             }
 
-            private int Analyze_WebApp(ref string uri, ref string param) {
+            private int Analyze_WebApp(string uri, string param) {
                 int i = 0;
                 foreach (string app in constants.atrs_iis_vdir) {
                     Logger.log_evt(log_levels.debugging, string.Format("Checking web-app {1}: {0}", app, i.ToString()));
@@ -550,30 +573,36 @@ Samples:
 
                 if (i == (int) constants.ATRS_IIS_VDIR._atrs_ns_agent) {
                     // We are inside the Altiris-NS-Agent web-app. Do further analysis.
-                    Analyze_NSAgent(ref uri);
+                    Analyze_NSAgent(uri);
                 } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_tm || i == (int) constants.ATRS_IIS_VDIR._atrs_cts) {
-                    Analyze_TaskMgmt(ref uri);
+                    Analyze_TaskMgmt(uri);
                 } else if (i == (int) constants.ATRS_IIS_VDIR._atrs_irm) {
-                    Analyze_IRM(ref param);
+                    Analyze_IRM(param);
                 } else if (i >= constants.atrs_iis_vdir.Length) {
                     i = constants.atrs_iis_vdir.Length - 1;
                 }
                 results.WEBAPP_Hit_counter[i, 0]++;
-                results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
-                if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
-                    results.WEBAPP_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+				
+				if (schema.fields.ContainsKey("time-taken")) {
+					results.WEBAPP_Hit_counter[i, 1] += Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+					if (results.WEBAPP_Hit_counter[i, 2] < Convert.ToInt64(current_line[schema.fields["time-taken"]])) {
+						results.WEBAPP_Hit_counter[i, 2] = Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+					}
+				}
                 return 0;
             }
 
-            private int Analyze_NSAgent(ref string uri) {
+            private int Analyze_NSAgent(string uri) {
                 int i = 0;
                 for (i = 0; i < constants.atrs_agent_req.Length; i++) {
                     string page_name = constants.atrs_agent_req[i];
                     if (uri.EndsWith(page_name)) {
                         results.AGENT_Hit_counter[i, 0]++;
-                        results.AGENT_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
-                        if (results.AGENT_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
-                            results.AGENT_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+						if (schema.fields.ContainsKey("time-taken")) {
+							results.AGENT_Hit_counter[i, 1] += Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+							if (results.AGENT_Hit_counter[i, 2] < Convert.ToInt64(current_line[schema.fields["time-taken"]]))
+								results.AGENT_Hit_counter[i, 2] = Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+						}
                         break;
                     }
                 }
@@ -590,15 +619,15 @@ Samples:
                 return 0;
             }
 
-            private void Analyze_TaskMgmt(ref string uri) {
+            private void Analyze_TaskMgmt(string uri) {
                 int i = 0;
                 for (i = 0; i < constants.atrs_task_req.Length; i++) {
                     string page_name = constants.atrs_task_req[i];
                     if (uri.EndsWith(page_name)) {
                         results.TASK_Hit_counter[i, 0]++;
-                        results.TASK_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
-                        if (results.TASK_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
-                            results.TASK_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        results.TASK_Hit_counter[i, 1] += Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+                        if (results.TASK_Hit_counter[i, 2] < Convert.ToInt64(current_line[schema.fields["time-taken"]]))
+                            results.TASK_Hit_counter[i, 2] = Convert.ToInt64(current_line[schema.fields["time-taken"]]);
                         break;
 					}
                 }
@@ -606,15 +635,15 @@ Samples:
                 results.HOURLY_hit_counter[_hour, (int) constants.HOURLY_TABLE._taskmgmt]++;
             }
 
-            private void Analyze_IRM(ref string param) {
+            private void Analyze_IRM(string param) {
                 int i = 0;
                 for (i = 0; i < constants.atrs_irm_params.Length; i++) {
                     string query_name = constants.atrs_irm_params[i];
                     if (param.StartsWith(query_name)) {
                         results.IRM_Hit_counter[i, 0]++;
-                        results.IRM_Hit_counter[i, 1] += Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
-                        if (results.IRM_Hit_counter[i, 2] < Convert.ToInt64(current_line[(int)FieldPositions.timetaken]))
-                            results.IRM_Hit_counter[i, 2] = Convert.ToInt64(current_line[(int)FieldPositions.timetaken]);
+                        results.IRM_Hit_counter[i, 1] += Convert.ToInt64(current_line[schema.fields["time-taken"]]);
+                        if (results.IRM_Hit_counter[i, 2] < Convert.ToInt64(current_line[schema.fields["time-taken"]]))
+                            results.IRM_Hit_counter[i, 2] = Convert.ToInt64(current_line[schema.fields["time-taken"]]);
                         break;
                     }
                 }
